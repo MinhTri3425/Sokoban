@@ -12,7 +12,6 @@ def load_sprites():
      for file in os.listdir(path):
           try:
                Sp_name = os.path.splitext(file)[0]
-
                Sprites[Sp_name] = pygame.image.load(os.path.join(path,file))
           except pygame.error as err:
                print(f"Không thể load ảnh {file} : {err}")
