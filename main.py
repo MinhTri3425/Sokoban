@@ -1,1 +1,1 @@
-print("hello thuy")
+print("toi fix duoc code roi mn oi")
