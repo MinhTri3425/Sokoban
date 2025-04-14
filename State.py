@@ -67,17 +67,22 @@ class State:
         return successors
     
     def is_deadlock(self):
-        """Ham kiem tra trang thai deadlock"""
+        """Hàm kiểm tra trạng thái deadlock"""
+        rows, cols = len(self.map_data), len(self.map_data[0])
         for (x, y) in self.boxes:
             if self.map_data[x][y] == '.':
                 continue  # Không deadlock nếu box đang ở mục tiêu
 
             walls = ['#']
+            # Kiểm tra biên trước khi truy cập
+            top = self.map_data[x-1][y] if x > 0 else '#'
+            bottom = self.map_data[x+1][y] if x < rows-1 else '#'
+            left = self.map_data[x][y-1] if y > 0 else '#'
+            right = self.map_data[x][y+1] if y < cols-1 else '#'
+
             neighbors = [
-                (self.map_data[x-1][y], self.map_data[x][y-1]),
-                (self.map_data[x-1][y], self.map_data[x][y+1]),
-                (self.map_data[x+1][y], self.map_data[x][y-1]),
-                (self.map_data[x+1][y], self.map_data[x][y+1])
+                (top, left), (top, right),
+                (bottom, left), (bottom, right)
             ]
             for a, b in neighbors:
                 if a in walls and b in walls:
