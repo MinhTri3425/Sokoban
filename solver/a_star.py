@@ -6,26 +6,34 @@ import time
 
 
 
-def heuristic(state):
-    """Ước lượng chi phí từ trạng thái hiện tại đến trạng thái đích."""
-    
+def worker_toBox(state):
+    """Tính khoảng cách Manhattan từ người chơi đến thùng gần nhất."""
+    player = state.player
+    boxes = state.boxes
+    min_dist = float('inf')
+    for box in boxes:
+        dist = abs(player[0] - box[0]) + abs(player[1] - box[1])
+        min_dist = min(min_dist, dist)
+    return min_dist if min_dist != float('inf') else 0
+
+def box_toDock(state):
+    """Tính tổng khoảng cách Manhattan từ mỗi thùng đến đích gần nhất."""
     total = 0
     targets = state.get_targets()
     boxes = state.boxes
-
-    # Tính tổng khoảng cách từ mỗi hộp đến mục tiêu gần nhất
     for box in boxes:
         if box in targets:
-            continue  # Bỏ qua hộp đã ở mục tiêu
-
-        # Tìm mục tiêu gần nhất
+            continue
         min_dis = float('inf')
         for target in targets:
             dis = abs(box[0] - target[0]) + abs(box[1] - target[1])
             min_dis = min(min_dis, dis)
-        total += min_dis  # Khoảng cách Manhattan cơ bản
-  
+        total += min_dis
     return total
+
+def heuristic(state):
+    """Heuristic kết hợp worker_toBox và box_toDock."""
+    return worker_toBox(state) + box_toDock(state)
 
 def a_star(start_state):
     open_set = []  
