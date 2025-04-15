@@ -14,7 +14,7 @@
 #     return map_data
 
 # def main():
-#     file_path = 'Level/level9.txt'
+#     file_path = 'Level/level6.txt'
 #     map_data = read_map_from_file(file_path)
     
 #     # Kiểm tra bản đồ đã đọc đúng chưa
