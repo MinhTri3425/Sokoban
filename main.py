@@ -14,7 +14,7 @@
 #     return map_data
 
 # def main():
-#     file_path = 'Level/level6.txt'
+#     file_path = "D:/NAM2/NAM2_HK2/AI/Final_Project/Sokoban/Level/level6.txt"
 #     map_data = read_map_from_file(file_path)
     
 #     # Kiểm tra bản đồ đã đọc đúng chưa
