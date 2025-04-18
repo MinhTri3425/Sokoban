@@ -33,7 +33,7 @@
     
 #     # Chạy BFS
 #     # print("Đang tìm kiếm lời giải bằng BFS...")
-#     solution = a_star(start_state)
+#     solution = dfs(start_state)
     
 #     # Kiểm tra kết quả của BFS
 #     if solution:

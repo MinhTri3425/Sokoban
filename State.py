@@ -1,5 +1,4 @@
 
-
 class State:
     def __init__(self, player_pos, boxes, map_data):
         self.player = player_pos  
