@@ -13,9 +13,15 @@
 #             map_data.append(list(line))
 #     return map_data
 
+# <<<<<<< HEAD
 # def main():
-#     file_path = "D:/NAM2/NAM2_HK2/AI/Final_Project/Sokoban/Level/level6.txt"
+#     file_path = 'Level/level6.txt'
 #     map_data = read_map_from_file(file_path)
+# =======
+# # def main():
+# #     file_path = "D:/NAM2/NAM2_HK2/AI/Final_Project/Sokoban/Level/level6.txt"
+# #     map_data = read_map_from_file(file_path)
+# >>>>>>> ef3b2985aeca48c5cd10b3c3ad26fb8cdb102fc7
     
 #     # Kiểm tra bản đồ đã đọc đúng chưa
 #     # print("Map data đã đọc từ file:")
