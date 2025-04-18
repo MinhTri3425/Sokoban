@@ -15,7 +15,7 @@ def read_map_from_file(file_path):
 
 
 def main():
-    file_path = "D:/NAM2/NAM2_HK2/AI/Final_Project/Sokoban/Level/level6.txt"
+    file_path = "D:/NAM2/NAM2_HK2/AI/Final_Project/Sokoban/Level/level9.txt"
     map_data = read_map_from_file(file_path)
 
     # Kiểm tra bản đồ đã đọc đúng chưa
@@ -34,7 +34,7 @@ def main():
     
     # Chạy BFS
     # print("Đang tìm kiếm lời giải bằng BFS...")
-    solution = dfs(start_state)
+    solution = bfs(start_state)
     
     # Kiểm tra kết quả của BFS
     if solution:
