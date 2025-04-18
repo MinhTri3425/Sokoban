@@ -29,7 +29,7 @@ def dfs(start_state):
         if current.is_deadlock():
             continue
 
-        for next_state in State.get_successors(current): 
+        for next_state in current.get_successors(): 
             if next_state not in visited:
                 visited.add(next_state)
                 parent[next_state] = current
