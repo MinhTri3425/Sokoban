@@ -13,16 +13,11 @@
 #             map_data.append(list(line))
 #     return map_data
 
-# <<<<<<< HEAD
+
 # def main():
-#     file_path = 'Level/level6.txt'
+#     file_path = "Level/level9.txt"
 #     map_data = read_map_from_file(file_path)
-# =======
-# # def main():
-# #     file_path = "D:/NAM2/NAM2_HK2/AI/Final_Project/Sokoban/Level/level6.txt"
-# #     map_data = read_map_from_file(file_path)
-# >>>>>>> ef3b2985aeca48c5cd10b3c3ad26fb8cdb102fc7
-    
+
 #     # Kiểm tra bản đồ đã đọc đúng chưa
 #     # print("Map data đã đọc từ file:")
 #     # for row in map_data:
@@ -39,7 +34,7 @@
     
 #     # Chạy BFS
 #     # print("Đang tìm kiếm lời giải bằng BFS...")
-#     solution = a_star(start_state)
+#     solution = bfs(start_state)
     
 #     # Kiểm tra kết quả của BFS
 #     if solution:
