@@ -8,7 +8,6 @@ from solver.bfs import bfs
 from solver.dfs import dfs
 from solver.a_star import a_star
 
-# Import game components
 from Object.box import Box
 from Object.box_docked import BoxDocked
 from Object.floor import Floor
@@ -22,10 +21,9 @@ class SokobanGUI:
     def __init__(self):
         pygame.init()
         pygame.display.set_caption("Sokoban Game - Nintendo Switch Style")
-
         load_sprites()
 
-        # Colors
+        # Màu sắc
         self.WHITE = (255, 255, 255)
         self.BLACK = (0, 0, 0)
         self.GRAY = (200, 200, 200)
@@ -37,20 +35,29 @@ class SokobanGUI:
         self.YELLOW = (255, 255, 0)
         self.PURPLE = (128, 0, 128)
 
-        # Nintendo Switch colors
         self.SWITCH_LEFT_COLOR = (0, 120, 255)
         self.SWITCH_RIGHT_COLOR = (255, 0, 0)
         self.SWITCH_BODY_COLOR = (20, 20, 20)
 
-        self.ui_height = 30
-        self.switch_side_width = 250
-        self.screen_width = 576
-        self.screen_height = 512
-        self.total_width = self.screen_width + self.switch_side_width * 2
-        self.total_height = self.screen_height + self.ui_height
+        # Kích thước viền đen bao quanh màn hình Nintendo
+        self.border_thickness = 80
+        self.ui_height = 30  # Phần nền đen dưới màn hình
+        self.top_border_extension = self.ui_height  # Phần nền đen trên màn hình bằng với phần dưới
+        self.side_extension = 80  # Phần mở rộng sang hai bên
 
+        # Kích thước gốc
+        self.switch_side_width = 230  # Kích thước Joy-Con
+        self.screen_width = 576  # Kích thước màn hình game gốc
+        self.screen_height = 512  # Kích thước màn hình game gốc
+        
+        # Kích thước màn hình mở rộng
+        self.extended_screen_width = self.screen_width + self.side_extension * 2
+        
+        # Tính toán kích thước mới cho UI
+        self.total_width = self.extended_screen_width + self.switch_side_width * 2
+        self.total_height = self.screen_height + self.ui_height + self.top_border_extension
         self.screen = pygame.display.set_mode((self.total_width, self.total_height))
-
+        
         self.current_level = 1
         self.max_level = self.count_levels()
         self.move_count = 0
@@ -63,36 +70,14 @@ class SokobanGUI:
         self.solution_delay = 300
         self.last_solution_move_time = 0
 
-        self.font = pygame.font.SysFont('Arial', 24)
-        self.small_font = pygame.font.SysFont('Arial', 18)
-        self.title_font = pygame.font.SysFont('Arial', 32, bold=True)
+        font_path = pygame.font.match_font("freesansbold")
+        self.font = pygame.font.Font(font_path, 24)
+        self.small_font = pygame.font.Font(font_path, 18)
+        self.title_font = pygame.font.Font(font_path, 32)
 
         self.load_level(self.current_level)
         self.setup_ui_buttons()
         self.clock = pygame.time.Clock()
-
-    def setup_ui_buttons(self):
-        self.joycon_left_center_x = self.switch_side_width // 2
-        self.dpad_size = 25
-        self.dpad_spacing = 35
-
-        self.dpad_up = pygame.Rect(self.joycon_left_center_x - self.dpad_size // 2, 100, self.dpad_size, self.dpad_size)
-        self.dpad_down = pygame.Rect(self.joycon_left_center_x - self.dpad_size // 2, 100 + self.dpad_spacing, self.dpad_size, self.dpad_size)
-        self.dpad_left = pygame.Rect(self.joycon_left_center_x - self.dpad_size - self.dpad_spacing // 2, 100 + self.dpad_spacing // 2, self.dpad_size, self.dpad_size)
-        self.dpad_right = pygame.Rect(self.joycon_left_center_x + self.dpad_spacing // 2, 100 + self.dpad_spacing // 2, self.dpad_size, self.dpad_size)
-
-        self.joy_reset = pygame.Rect(self.joycon_left_center_x - 30, 200, 60, 25)
-        self.joy_undo = pygame.Rect(self.joycon_left_center_x - 30, 240, 60, 25)
-
-        self.joycon_right_center_x = self.total_width - self.switch_side_width // 2
-
-        self.joy_next = pygame.Rect(self.joycon_right_center_x - 30, 280, 60, 25)
-        self.joy_prev = pygame.Rect(self.joycon_right_center_x - 30, 320, 60, 25)
-
-        self.joy_bfs = pygame.Rect(self.joycon_right_center_x - 30, 100, 60, 25)
-        self.joy_dfs = pygame.Rect(self.joycon_right_center_x - 30, 140, 60, 25)
-        self.joy_astar = pygame.Rect(self.joycon_right_center_x - 30, 180, 60, 25)
-        self.joy_stop = pygame.Rect(self.joycon_right_center_x - 30, 220, 60, 25)
 
     def count_levels(self):
         count = 0
@@ -103,7 +88,7 @@ class SokobanGUI:
     def load_level(self, level_number):
         try:
             with open(f"Level/level{level_number}.txt") as f:
-                level_data = [list(line.strip()) for line in f]
+                level_data = [list(line.strip('\n')) for line in f]
             self.game = Game(level_data, [])
             self.dock_list = self.game.listDock()
             self.move_count = 0
@@ -114,11 +99,79 @@ class SokobanGUI:
         except FileNotFoundError:
             print(f"Level {level_number} not found")
 
+    def setup_ui_buttons(self):
+        # Tính toán vị trí trung tâm của mỗi Joy-Con
+        self.joycon_left_center_x = self.switch_side_width // 2
+        self.joycon_right_center_x = self.total_width - self.switch_side_width // 2
+        self.dpad_size = 60
+        self.dpad_spacing = 15
+
+        # Điều chỉnh vị trí các nút để phù hợp với chiều cao mới
+        dpad_center_y = self.top_border_extension + 150
+
+        # Căn giữa các nút D-pad theo chiều ngang của Joy-Con trái
+        self.dpad_up = pygame.Rect(self.joycon_left_center_x - self.dpad_size // 2,
+                                dpad_center_y - self.dpad_size - self.dpad_spacing,
+                                self.dpad_size, self.dpad_size)
+        self.dpad_down = pygame.Rect(self.joycon_left_center_x - self.dpad_size // 2,
+                                    dpad_center_y + self.dpad_spacing,
+                                    self.dpad_size, self.dpad_size)
+        self.dpad_left = pygame.Rect(self.joycon_left_center_x - self.dpad_size - self.dpad_spacing,
+                                    dpad_center_y - self.dpad_size // 2,
+                                    self.dpad_size, self.dpad_size)
+        self.dpad_right = pygame.Rect(self.joycon_left_center_x + self.dpad_spacing,
+                                    dpad_center_y - self.dpad_size // 2,
+                                    self.dpad_size, self.dpad_size)
+
+        # Căn giữa các nút chức năng trên Joy-Con trái
+        button_width = 80
+        self.joy_reset = pygame.Rect(self.joycon_left_center_x - button_width // 2, dpad_center_y + 90, button_width, 35)
+        self.joy_undo = pygame.Rect(self.joycon_left_center_x - button_width // 2, dpad_center_y + 140, button_width, 35)
+        self.joy_prev = pygame.Rect(self.joycon_left_center_x - button_width // 2, dpad_center_y + 190, button_width, 35)
+
+        algo_center_y = self.top_border_extension + 150
+        # Căn giữa các nút thuật toán trên Joy-Con phải
+        self.joy_bfs = pygame.Rect(self.joycon_right_center_x - self.dpad_size // 2,
+                                algo_center_y - self.dpad_size - self.dpad_spacing,
+                                self.dpad_size, self.dpad_size)
+        self.joy_dfs = pygame.Rect(self.joycon_right_center_x - self.dpad_size // 2,
+                                algo_center_y + self.dpad_spacing,
+                                self.dpad_size, self.dpad_size)
+        self.joy_astar = pygame.Rect(self.joycon_right_center_x - self.dpad_size - self.dpad_spacing,
+                                    algo_center_y - self.dpad_size // 2,
+                                    self.dpad_size, self.dpad_size)
+        self.joy_stop = pygame.Rect(self.joycon_right_center_x + self.dpad_spacing,
+                                    algo_center_y - self.dpad_size // 2,
+                                    self.dpad_size, self.dpad_size)
+
+        # Căn giữa nút Next trên Joy-Con phải
+        self.joy_next = pygame.Rect(self.joycon_right_center_x - button_width // 2, algo_center_y + 190, button_width, 35)
+
+        # Thêm nút tròn ở dưới Joy-Con
+        self.circle_button_y = self.top_border_extension + 400
+
+    def draw_diamond_button(self, rect, text, color, text_color=None):
+        if text_color is None:
+            text_color = self.WHITE
+
+        points = [
+            (rect.centerx, rect.top),
+            (rect.right, rect.centery),
+            (rect.centerx, rect.bottom),
+            (rect.left, rect.centery)
+        ]
+        pygame.draw.polygon(self.screen, color, points)
+        pygame.draw.polygon(self.screen, self.BLACK, points, 2)
+
+        text_surf = self.small_font.render(text, True, text_color)
+        text_rect = text_surf.get_rect(center=rect.center)
+        self.screen.blit(text_surf, text_rect)
+
     def draw_joy_con_button(self, rect, text, color, text_color=None):
         if text_color is None:
             text_color = self.WHITE
-        pygame.draw.rect(self.screen, color, rect, border_radius=5)
-        pygame.draw.rect(self.screen, self.BLACK, rect, 2, border_radius=5)
+        pygame.draw.rect(self.screen, color, rect, border_radius=10)
+        pygame.draw.rect(self.screen, self.BLACK, rect, 2, border_radius=10)
         text_surf = self.small_font.render(text, True, text_color)
         text_rect = text_surf.get_rect(center=rect.center)
         self.screen.blit(text_surf, text_rect)
@@ -128,28 +181,31 @@ class SokobanGUI:
         pygame.draw.circle(self.screen, self.BLACK, (center_x, center_y), radius, 2)
 
     def draw_ui(self):
+        # Điều chỉnh vị trí hiển thị thông tin level và moves
         level_text = self.font.render(f"Level: {self.current_level}/{self.max_level}", True, self.WHITE)
         move_text = self.font.render(f"Moves: {self.move_count}", True, self.WHITE)
-        self.screen.blit(level_text, (self.total_width // 2 - 100, self.screen_height + 2))
-        self.screen.blit(move_text, (self.total_width // 2 + 100, self.screen_height + 2))
+        
+        # Vị trí mới cho thông tin
+        self.screen.blit(level_text, (self.total_width // 2 - 100, self.top_border_extension + self.screen_height + 2))
+        self.screen.blit(move_text, (self.total_width // 2 + 100, self.top_border_extension + self.screen_height + 2))
 
-        self.draw_joy_con_button(self.dpad_up, "↑", self.BLACK)
-        self.draw_joy_con_button(self.dpad_down, "↓", self.BLACK)
-        self.draw_joy_con_button(self.dpad_left, "←", self.BLACK)
-        self.draw_joy_con_button(self.dpad_right, "→", self.BLACK)
+        self.draw_diamond_button(self.dpad_up, "↑", self.BLACK)
+        self.draw_diamond_button(self.dpad_down, "↓", self.BLACK)
+        self.draw_diamond_button(self.dpad_left, "←", self.BLACK)
+        self.draw_diamond_button(self.dpad_right, "→", self.BLACK)
 
         self.draw_joy_con_button(self.joy_reset, "Reset", self.RED)
         self.draw_joy_con_button(self.joy_undo, "Undo", self.BLUE)
         self.draw_joy_con_button(self.joy_prev, "Prev", self.GREEN)
         self.draw_joy_con_button(self.joy_next, "Next", self.GREEN)
 
-        self.draw_joy_con_button(self.joy_bfs, "BFS", self.PURPLE)
-        self.draw_joy_con_button(self.joy_dfs, "DFS", self.DARK_BLUE)
-        self.draw_joy_con_button(self.joy_astar, "A*", self.YELLOW, self.BLACK)
-        self.draw_joy_con_button(self.joy_stop, "Stop", self.RED if self.solving else self.GRAY)
+        self.draw_diamond_button(self.joy_bfs, "BFS", self.PURPLE)
+        self.draw_diamond_button(self.joy_dfs, "DFS", self.DARK_BLUE)
+        self.draw_diamond_button(self.joy_astar, "A*", self.YELLOW, self.BLACK)
+        self.draw_diamond_button(self.joy_stop, "Stop", self.RED if self.solving else self.GRAY)
 
-        self.draw_circle_button(self.joycon_left_center_x, 400, 15, self.BLACK)
-        self.draw_circle_button(self.joycon_right_center_x, 400, 15, self.BLACK)
+        self.draw_circle_button(self.joycon_left_center_x, self.circle_button_y, 15, self.BLACK)
+        self.draw_circle_button(self.joycon_right_center_x, self.circle_button_y, 15, self.BLACK)
 
     def handle_click(self, pos):
         if self.joy_reset.collidepoint(pos): self.load_level(self.current_level)
@@ -219,9 +275,7 @@ class SokobanGUI:
         running = True
         while running:
             for event in pygame.event.get():
-                if event.type == QUIT:
-                    running = False
-                elif event.type == KEYDOWN and event.key == K_ESCAPE:
+                if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
                     running = False
                 elif event.type == MOUSEBUTTONDOWN:
                     self.handle_click(event.pos)
@@ -230,14 +284,41 @@ class SokobanGUI:
                 self.apply_solution_move()
 
             self.screen.fill(self.BLACK)
-            pygame.draw.rect(self.screen, self.SWITCH_LEFT_COLOR, (0, 0, self.switch_side_width, self.total_height))
-            pygame.draw.rect(self.screen, self.SWITCH_RIGHT_COLOR, (self.switch_side_width + self.screen_width, 0, self.switch_side_width, self.total_height))
-            pygame.draw.rect(self.screen, self.SWITCH_BODY_COLOR, (self.switch_side_width, 0, self.screen_width, self.screen_height))
 
-            # Vẽ hình chữ nhật bao quanh vùng SWITCH_BODY_COLOR
-            pygame.draw.rect(self.screen, self.BLACK, (self.switch_side_width, 0, self.screen_width, self.screen_height), 5)
+            # Vẽ hình chữ nhật đen bao quanh toàn bộ màn hình (bao gồm cả phần dưới Joy-Con)
+            full_black_rect = pygame.Rect(0, 0, self.total_width, self.total_height)
+            pygame.draw.rect(self.screen, self.BLACK, full_black_rect)
+            
+            # Vẽ Joy-Con controllers với chiều cao mới
+            pygame.draw.rect(self.screen, self.SWITCH_LEFT_COLOR,
+                             (0, 0, self.switch_side_width, self.total_height),
+                             border_top_left_radius=50, border_bottom_left_radius=50)
 
-            subscreen = self.screen.subsurface(pygame.Rect(self.switch_side_width, 0, self.screen_width, self.screen_height))
+            pygame.draw.rect(self.screen, self.SWITCH_RIGHT_COLOR,
+                             (self.switch_side_width + self.extended_screen_width, 0, self.switch_side_width, self.total_height),
+                             border_top_right_radius=50, border_bottom_right_radius=50)
+
+            # Vẽ màn hình mở rộng (màn hình chính mở rộng)
+            extended_screen_rect = pygame.Rect(
+                self.switch_side_width,
+                0,
+                self.extended_screen_width,
+                self.total_height
+            )
+            pygame.draw.rect(self.screen, self.BLACK, extended_screen_rect)
+            
+            # Vẽ màn hình game với kích thước gốc (căn giữa trong màn hình mở rộng)
+            game_screen_rect = pygame.Rect(
+                self.switch_side_width + self.side_extension,  # Dịch sang phải theo phần mở rộng bên trái
+                self.top_border_extension,  # Dịch xuống theo phần mở rộng lên trên
+                self.screen_width, 
+                self.screen_height
+            )
+            pygame.draw.rect(self.screen, self.SWITCH_BODY_COLOR, game_screen_rect)
+            pygame.draw.rect(self.screen, self.BLACK, game_screen_rect, 5)
+
+            # Tạo subscreen cho game với kích thước gốc
+            subscreen = self.screen.subsurface(game_screen_rect)
             Game.fill_screen_with_floor((self.screen_width, self.screen_height), subscreen)
             self.game.print_game(subscreen)
 
@@ -245,7 +326,7 @@ class SokobanGUI:
 
             if self.game_completed:
                 complete_text = self.font.render("Level Complete!", True, self.GREEN)
-                self.screen.blit(complete_text, complete_text.get_rect(center=(self.total_width // 2, 70)))
+                self.screen.blit(complete_text, complete_text.get_rect(center=(self.total_width // 2, self.top_border_extension // 2)))
 
             pygame.display.flip()
             self.clock.tick(60)
