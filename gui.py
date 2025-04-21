@@ -127,7 +127,10 @@ class SokobanGUI:
         button_width = 80
         self.joy_reset = pygame.Rect(self.joycon_left_center_x - button_width // 2, dpad_center_y + 90, button_width, 35)
         self.joy_undo = pygame.Rect(self.joycon_left_center_x - button_width // 2, dpad_center_y + 140, button_width, 35)
-        self.joy_prev = pygame.Rect(self.joycon_left_center_x - button_width // 2, dpad_center_y + 190, button_width, 35)
+        
+        # Xóa nút Prev và Next
+        # self.joy_prev = pygame.Rect(self.joycon_left_center_x - button_width // 2, dpad_center_y + 190, button_width, 35)
+        # self.joy_next = pygame.Rect(self.joycon_right_center_x - button_width // 2, algo_center_y + 190, button_width, 35)
 
         algo_center_y = self.top_border_extension + 150
         # Căn giữa các nút thuật toán trên Joy-Con phải
@@ -144,11 +147,19 @@ class SokobanGUI:
                                     algo_center_y - self.dpad_size // 2,
                                     self.dpad_size, self.dpad_size)
 
-        # Căn giữa nút Next trên Joy-Con phải
-        self.joy_next = pygame.Rect(self.joycon_right_center_x - button_width // 2, algo_center_y + 190, button_width, 35)
-
-        # Thêm nút tròn ở dưới Joy-Con
-        self.circle_button_y = self.top_border_extension + 400
+        # Vị trí nút tròn ở góc trên Joy-Con
+        self.circle_button_radius = 18
+        self.padding = 35  # Khoảng cách từ góc
+        
+        # Nút "-" ở góc trên bên phải của Joy-Con trái (thay thế chức năng Prev)
+        self.minus_button_x = self.switch_side_width - self.padding
+        self.minus_button_y = self.padding
+        self.minus_button_radius = self.circle_button_radius
+        
+        # Nút "+" ở góc trên bên trái của Joy-Con phải (thay thế chức năng Next)
+        self.plus_button_x = self.switch_side_width + self.extended_screen_width + self.padding
+        self.plus_button_y = self.padding
+        self.plus_button_radius = self.circle_button_radius
 
     def draw_diamond_button(self, rect, text, color, text_color=None):
         if text_color is None:
@@ -176,9 +187,14 @@ class SokobanGUI:
         text_rect = text_surf.get_rect(center=rect.center)
         self.screen.blit(text_surf, text_rect)
 
-    def draw_circle_button(self, center_x, center_y, radius, color):
+    def draw_circle_button(self, center_x, center_y, radius, color, text=None):
         pygame.draw.circle(self.screen, color, (center_x, center_y), radius)
         pygame.draw.circle(self.screen, self.BLACK, (center_x, center_y), radius, 2)
+        
+        if text:
+            text_surf = self.font.render(text, True, self.WHITE)
+            text_rect = text_surf.get_rect(center=(center_x, center_y))
+            self.screen.blit(text_surf, text_rect)
 
     def draw_ui(self):
         # Điều chỉnh vị trí hiển thị thông tin level và moves
@@ -196,26 +212,42 @@ class SokobanGUI:
 
         self.draw_joy_con_button(self.joy_reset, "Reset", self.RED)
         self.draw_joy_con_button(self.joy_undo, "Undo", self.BLUE)
-        self.draw_joy_con_button(self.joy_prev, "Prev", self.GREEN)
-        self.draw_joy_con_button(self.joy_next, "Next", self.GREEN)
+        
+        # Xóa vẽ nút Prev và Next
+        # self.draw_joy_con_button(self.joy_prev, "Prev", self.GREEN)
+        # self.draw_joy_con_button(self.joy_next, "Next", self.GREEN)
 
         self.draw_diamond_button(self.joy_bfs, "BFS", self.PURPLE)
         self.draw_diamond_button(self.joy_dfs, "DFS", self.DARK_BLUE)
         self.draw_diamond_button(self.joy_astar, "A*", self.YELLOW, self.BLACK)
         self.draw_diamond_button(self.joy_stop, "Stop", self.RED if self.solving else self.GRAY)
 
-        self.draw_circle_button(self.joycon_left_center_x, self.circle_button_y, 15, self.BLACK)
-        self.draw_circle_button(self.joycon_right_center_x, self.circle_button_y, 15, self.BLACK)
+        # Vẽ nút "-" ở góc trên bên phải của Joy-Con trái (thay thế chức năng Prev)
+        self.draw_circle_button(self.minus_button_x, self.minus_button_y, self.minus_button_radius, self.BLACK, "-")
+        
+        # Vẽ nút "+" ở góc trên bên trái của Joy-Con phải (thay thế chức năng Next)
+        self.draw_circle_button(self.plus_button_x, self.plus_button_y, self.plus_button_radius, self.BLACK, "+")
+
+    def is_point_in_circle(self, point, center_x, center_y, radius):
+        """Kiểm tra xem một điểm có nằm trong hình tròn hay không"""
+        return ((point[0] - center_x) ** 2 + (point[1] - center_y) ** 2) <= radius ** 2
 
     def handle_click(self, pos):
-        if self.joy_reset.collidepoint(pos): self.load_level(self.current_level)
+        # Kiểm tra click vào nút "-" (chức năng Prev)
+        if self.is_point_in_circle(pos, self.minus_button_x, self.minus_button_y, self.minus_button_radius):
+            if self.current_level > 1:
+                self.current_level -= 1
+                self.load_level(self.current_level)
+        
+        # Kiểm tra click vào nút "+" (chức năng Next)
+        elif self.is_point_in_circle(pos, self.plus_button_x, self.plus_button_y, self.plus_button_radius):
+            if self.current_level < self.max_level:
+                self.current_level += 1
+                self.load_level(self.current_level)
+        
+        # Các nút khác
+        elif self.joy_reset.collidepoint(pos): self.load_level(self.current_level)
         elif self.joy_undo.collidepoint(pos): self.undo_move()
-        elif self.joy_prev.collidepoint(pos) and self.current_level > 1:
-            self.current_level -= 1
-            self.load_level(self.current_level)
-        elif self.joy_next.collidepoint(pos) and self.current_level < self.max_level:
-            self.current_level += 1
-            self.load_level(self.current_level)
         elif self.joy_bfs.collidepoint(pos): self.solve_with("bfs")
         elif self.joy_dfs.collidepoint(pos): self.solve_with("dfs")
         elif self.joy_astar.collidepoint(pos): self.solve_with("astar")
