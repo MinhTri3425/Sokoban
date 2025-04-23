@@ -123,14 +123,26 @@ class SokobanGUI:
                                     dpad_center_y - self.dpad_size // 2,
                                     self.dpad_size, self.dpad_size)
 
-        # Căn giữa các nút chức năng trên Joy-Con trái
+        # Kích thước nút chức năng
         button_width = 80
-        self.joy_reset = pygame.Rect(self.joycon_left_center_x - button_width // 2, dpad_center_y + 90, button_width, 35)
-        self.joy_undo = pygame.Rect(self.joycon_left_center_x - button_width // 2, dpad_center_y + 140, button_width, 35)
+        button_height = 35
         
-        # Xóa nút Prev và Next
-        # self.joy_prev = pygame.Rect(self.joycon_left_center_x - button_width // 2, dpad_center_y + 190, button_width, 35)
-        # self.joy_next = pygame.Rect(self.joycon_right_center_x - button_width // 2, algo_center_y + 190, button_width, 35)
+        # Khoảng cách từ dưới cùng của Joy-Con
+        bottom_padding = 50
+        
+        # Nút Undo ở góc dưới của Joy-Con trái
+        self.joy_undo = pygame.Rect(
+            self.joycon_left_center_x - button_width // 2, 
+            self.total_height - bottom_padding - button_height,
+            button_width, button_height
+        )
+        
+        # Nút Reset ở góc dưới của Joy-Con phải
+        self.joy_reset = pygame.Rect(
+            self.joycon_right_center_x - button_width // 2, 
+            self.total_height - bottom_padding - button_height,
+            button_width, button_height
+        )
 
         algo_center_y = self.top_border_extension + 150
         # Căn giữa các nút thuật toán trên Joy-Con phải
@@ -210,12 +222,9 @@ class SokobanGUI:
         self.draw_diamond_button(self.dpad_left, "←", self.BLACK)
         self.draw_diamond_button(self.dpad_right, "→", self.BLACK)
 
-        self.draw_joy_con_button(self.joy_reset, "Reset", self.RED)
+        # Vẽ nút Undo ở Joy-Con trái và Reset ở Joy-Con phải
         self.draw_joy_con_button(self.joy_undo, "Undo", self.BLUE)
-        
-        # Xóa vẽ nút Prev và Next
-        # self.draw_joy_con_button(self.joy_prev, "Prev", self.GREEN)
-        # self.draw_joy_con_button(self.joy_next, "Next", self.GREEN)
+        self.draw_joy_con_button(self.joy_reset, "Reset", self.RED)
 
         self.draw_diamond_button(self.joy_bfs, "BFS", self.PURPLE)
         self.draw_diamond_button(self.joy_dfs, "DFS", self.DARK_BLUE)
