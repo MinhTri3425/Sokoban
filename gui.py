@@ -22,9 +22,14 @@ from Assets import load_sprites, get_sprites
 class SokobanGUI:
     def __init__(self):
         pygame.init()
+        pygame.mixer.init()  # Initialize the mixer module for sound
         pygame.display.set_caption("Sokoban Game - Nintendo Switch Edition")
         load_sprites()
 
+        # Load sound effects
+        self.load_sounds()
+
+        self.pending_undo = 0
         # Colors
         self.WHITE = (255, 255, 255)
         self.BLACK = (0, 0, 0)
@@ -137,6 +142,60 @@ class SokobanGUI:
             (255, 165, 0), (128, 0, 128)
         ]
         self.confetti = []
+        
+        # Start playing background music
+        self.play_background_music()
+
+    def load_sounds(self):
+        """Load all sound effects and music"""
+        try:
+            # Create Sound directory if it doesn't exist
+            if not os.path.exists("Sound"):
+                os.makedirs("Sound")
+                
+            # Load background music
+            self.background_music = pygame.mixer.Sound(os.path.join("Sound", "backgroud.mp3"))
+            self.background_music.set_volume(0.8)  # Set volume to 50%
+            
+            # Load victory sound
+            self.victory_sound = pygame.mixer.Sound(os.path.join("Sound", "victory.mp3"))
+            self.victory_sound.set_volume(1.0)  # Set volume to 70%
+            
+            # Load move sound
+            self.move_sound = pygame.mixer.Sound(os.path.join("Sound", "move.wav"))
+            self.move_sound.set_volume(0.5)  # Set volume to 60%
+            
+            print("All sounds loaded successfully")
+        except Exception as e:
+            print(f"Error loading sounds: {e}")
+            # Create dummy sound objects if loading fails
+            self.background_music = None
+            self.victory_sound = None
+            self.move_sound = None
+
+    def play_background_music(self):
+        """Play background music in a loop"""
+        if self.background_music:
+            try:
+                pygame.mixer.Channel(0).play(self.background_music, loops=-1)  # -1 means loop indefinitely
+            except Exception as e:
+                print(f"Error playing background music: {e}")
+
+    def play_victory_sound(self):
+        """Play victory sound once"""
+        if self.victory_sound:
+            try:
+                pygame.mixer.Channel(1).play(self.victory_sound)
+            except Exception as e:
+                print(f"Error playing victory sound: {e}")
+
+    def play_move_sound(self):
+        """Play move sound once"""
+        if self.move_sound:
+            try:
+                pygame.mixer.Channel(2).play(self.move_sound)
+            except Exception as e:
+                print(f"Error playing move sound: {e}")
 
     def count_levels(self):
         count = 0
@@ -439,73 +498,74 @@ class SokobanGUI:
                 
         return player_pos
 
-    def find_differences(self, old_matrix, new_matrix):
-        """Find differences between two matrices to determine player and box movement"""
-        old_player_pos = self.find_player_and_box_positions(old_matrix)
-        new_player_pos = self.find_player_and_box_positions(new_matrix)
-        
-        # Find box positions that changed
-        old_box_positions = []
-        new_box_positions = []
-        
-        for i in range(len(old_matrix)):
-            for j in range(len(old_matrix[i])):
-                if old_matrix[i][j] in ['$', '*'] and new_matrix[i][j] not in ['$', '*']:
-                    old_box_positions.append((i, j))
-                if new_matrix[i][j] in ['$', '*'] and old_matrix[i][j] not in ['$', '*']:
-                    new_box_positions.append((i, j))
-        
-        # If we have exactly one box that moved
-        if len(old_box_positions) == 1 and len(new_box_positions) == 1:
-            return old_player_pos, new_player_pos, old_box_positions[0], new_box_positions[0]
-        else:
-            return old_player_pos, new_player_pos, None, None
 
     def undo_move(self):
-        if not self.game.stack_matrix or self.animation_in_progress or self.undo_animation_in_progress:
+        """Queue undo move if animation is playing, otherwise start immediately."""
+        if self.animation_in_progress:
             return
-            
-        # Store current state before undoing
+
+        if self.undo_animation_in_progress:
+            # Nếu đang undo thì xếp thêm 1 cái
+            self.pending_undo += 1
+            return
+
+        if not self.game.stack_matrix:
+            return
+
+        # Bắt đầu undo animation
         current_state = copy.deepcopy(self.game.matrix)
-        previous_state = self.game.stack_matrix[-1]
-        
-        # Find player and box positions in both states
+        previous_state = copy.deepcopy(self.game.stack_matrix[-1])
+
         old_player_pos, new_player_pos, old_box_pos, new_box_pos = self.find_differences(previous_state, current_state)
-        
+
+        if old_player_pos is None or new_player_pos is None:
+            old_player_pos = self.find_player_and_box_positions(previous_state)
+            new_player_pos = self.find_player_and_box_positions(current_state)
+
         if old_player_pos and new_player_pos:
-            # Set up undo animation
             self.undo_animation_in_progress = True
             self.undo_animation_start_time = pygame.time.get_ticks()
             self.undo_animation_start_pos = new_player_pos
             self.undo_animation_end_pos = old_player_pos
-            
+
             if old_box_pos and new_box_pos:
                 self.undo_animation_box_start = new_box_pos
                 self.undo_animation_box_end = old_box_pos
             else:
                 self.undo_animation_box_start = None
                 self.undo_animation_box_end = None
-                
-            # Store states for animation
-            self.undo_previous_state = previous_state
-            self.undo_current_state = current_state
-            
-            # Update game state - only pop one state at a time
-            self.game.matrix = self.game.stack_matrix.pop()
-            if self.move_count > 0:
-                self.move_count -= 1
-            self.game_completed = self.game.is_completed(self.dock_list)
-            if not self.game_completed:
-                self.show_congrats = False
-        else:
-            # If we couldn't determine positions for animation, just update the state
-            self.game.matrix = self.game.stack_matrix.pop()
-            if self.move_count > 0:
-                self.move_count -= 1
-            self.game_completed = self.game.is_completed(self.dock_list)
-            if not self.game_completed:
-                self.show_congrats = False
 
+            self.undo_previous_state = previous_state
+            self.play_move_sound()
+        else:
+            print("Could not determine player positions for undo animation")
+            self.play_move_sound()
+
+
+    def find_differences(self, old_matrix, new_matrix):
+        """Find differences between two matrices to determine player and box movement."""
+        old_player_pos = self.find_player_and_box_positions(old_matrix)
+        new_player_pos = self.find_player_and_box_positions(new_matrix)
+
+        print(f"Find differences - Old player: {old_player_pos}, New player: {new_player_pos}")
+
+        if old_player_pos == new_player_pos:
+            return old_player_pos, new_player_pos, None, None
+
+        old_box_positions = []
+        new_box_positions = []
+
+        for i in range(len(old_matrix)):
+            for j in range(len(old_matrix[i])):
+                if old_matrix[i][j] in ['$', '*'] and new_matrix[i][j] not in ['$', '*']:
+                    old_box_positions.append((i, j))
+                if new_matrix[i][j] in ['$', '*'] and old_matrix[i][j] not in ['$', '*']:
+                    new_box_positions.append((i, j))
+
+        if len(old_box_positions) == 1 and len(new_box_positions) == 1:
+            return old_player_pos, new_player_pos, old_box_positions[0], new_box_positions[0]
+        else:
+            return old_player_pos, new_player_pos, None, None
     def apply_solution_move(self):
         if not self.solving or self.solution_index >= len(self.solution_path) or self.animation_in_progress or self.undo_animation_in_progress:
             if self.solution_index >= len(self.solution_path):
@@ -583,6 +643,9 @@ class SokobanGUI:
         if old_matrix != self.game.matrix:
             self.move_count += 1
             
+            # Play move sound
+            self.play_move_sound()
+            
             # Check if level is completed
             if self.game.is_completed(self.dock_list) and not self.game_completed:
                 self.game_completed = True
@@ -590,6 +653,9 @@ class SokobanGUI:
                 self.congrats_alpha = 0
                 self.congrats_fade_in = True
                 self.create_confetti()
+                
+                # Play victory sound when level is completed
+                self.play_victory_sound()
 
     def create_confetti(self):
         """Create confetti particles for celebration"""
@@ -696,174 +762,140 @@ class SokobanGUI:
         surface.blit(star_surface, (x - radius, y - radius))
 
     def draw_game_with_animation(self, subscreen):
-        """Draw the game with smooth animation"""
-        # Fill with floor tiles
+        """Update and draw the game with smooth animation."""
+        # Fill background
         Game.fill_screen_with_floor((self.screen_width, self.screen_height), subscreen)
-        
+
+        current_time = pygame.time.get_ticks()
+        tile_size = 64  # Assuming 64x64 tiles
+
+        # No animation in progress
         if not self.animation_in_progress and not self.undo_animation_in_progress:
-            # Normal rendering without animation
             self.game.print_game(subscreen)
             return
-            
-        # Handle forward animation
+
+        # Handle forward animation (normal move)
         if self.animation_in_progress:
-            # Calculate animation progress
-            current_time = pygame.time.get_ticks()
             elapsed = current_time - self.animation_start_time
             progress = min(1.0, elapsed / self.animation_duration)
-            
-            # If animation is complete
+
             if progress >= 1.0:
+                # Animation complete
                 self.animation_in_progress = False
                 self.game.print_game(subscreen)
                 return
-                
-            # Get tile size
-            tile_size = 64
-            
-            # Draw all static elements
+
+            # Draw static parts
             for row_index, row in enumerate(self.game.matrix):
                 for col_index, char in enumerate(row):
-                    # Skip player and moving box
-                    if (row_index, col_index) == self.animation_end_pos:
+                    if (row_index, col_index) in [
+                        self.animation_start_pos,
+                        self.animation_end_pos,
+                        self.animation_box_start,
+                        self.animation_box_end,
+                    ]:
                         continue
-                        
-                    if self.animation_box_end and (row_index, col_index) == self.animation_box_end:
-                        continue
-                        
-                    # Skip the original player position
-                    if (row_index, col_index) == self.animation_start_pos:
-                        continue
-                        
-                    # Skip the original box position if pushing a box
-                    if self.animation_box_start and (row_index, col_index) == self.animation_box_start:
-                        continue
-                        
-                    x = col_index * tile_size
-                    y = row_index * tile_size
-                    
-                    if char == '#':
-                        obj = Wall(x, y)
-                        subscreen.blit(obj.image, obj.rect)
-                    elif char == '.':
-                        obj = Dock(x, y)
-                        subscreen.blit(obj.image, obj.rect)
-                    elif char == '$':
-                        obj = Box(x, y)
-                        subscreen.blit(obj.image, obj.rect)
-                    elif char == '*':
-                        obj = BoxDocked(x, y)
-                        subscreen.blit(obj.image, obj.rect)
-            
-            # Draw animated player
-            start_x = self.animation_start_pos[1] * tile_size
-            start_y = self.animation_start_pos[0] * tile_size
-            end_x = self.animation_end_pos[1] * tile_size
-            end_y = self.animation_end_pos[0] * tile_size
-            
-            current_x = start_x + (end_x - start_x) * progress
-            current_y = start_y + (end_y - start_y) * progress
-            
+
+                    x, y = col_index * tile_size, row_index * tile_size
+                    self.draw_tile(char, x, y, subscreen)
+
+            # Draw moving player
+            current_x = self.animation_start_pos[1] * tile_size + (self.animation_end_pos[1] - self.animation_start_pos[1]) * tile_size * progress
+            current_y = self.animation_start_pos[0] * tile_size + (self.animation_end_pos[0] - self.animation_start_pos[0]) * tile_size * progress
+
             player = Worker(current_x, current_y)
             subscreen.blit(player.image, player.rect)
-            
-            # Draw animated box if pushing one
+
+            # Draw moving box if needed
             if self.animation_box_start and self.animation_box_end:
-                box_start_x = self.animation_box_start[1] * tile_size
-                box_start_y = self.animation_box_start[0] * tile_size
-                box_end_x = self.animation_box_end[1] * tile_size
-                box_end_y = self.animation_box_end[0] * tile_size
-                
-                box_current_x = box_start_x + (box_end_x - box_start_x) * progress
-                box_current_y = box_start_y + (box_end_y - box_start_y) * progress
-                
-                # Check if the box is on a dock in its final position
-                if self.game.matrix[self.animation_box_end[0]][self.animation_box_end[1]] == '*':
-                    box = BoxDocked(box_current_x, box_current_y)
-                else:
-                    box = Box(box_current_x, box_current_y)
-                    
-                subscreen.blit(box.image, box.rect)
-        
-        # Handle undo animation
-        elif self.undo_animation_in_progress:
-            # Calculate animation progress
-            current_time = pygame.time.get_ticks()
-            elapsed = current_time - self.undo_animation_start_time
-            progress = min(1.0, elapsed / self.undo_animation_duration)
-            
-            # If animation is complete
-            if progress >= 1.0:
-                self.undo_animation_in_progress = False
-                self.game.print_game(subscreen)
-                return
-                
-            # Get tile size
-            tile_size = 64
-            
-            # Draw all static elements from the current state
-            for row_index, row in enumerate(self.game.matrix):
-                for col_index, char in enumerate(row):
-                    # Skip player position
-                    if (row_index, col_index) == self.undo_animation_end_pos:
-                        continue
-                        
-                    # Skip box end position if moving a box
-                    if self.undo_animation_box_end and (row_index, col_index) == self.undo_animation_box_end:
-                        continue
-                    
-                    x = col_index * tile_size
-                    y = row_index * tile_size
-                    
-                    if char == '#':
-                        obj = Wall(x, y)
-                        subscreen.blit(obj.image, obj.rect)
-                    elif char == '.':
-                        obj = Dock(x, y)
-                        subscreen.blit(obj.image, obj.rect)
-                    elif char == '$':
-                        obj = Box(x, y)
-                        subscreen.blit(obj.image, obj.rect)
-                    elif char == '*':
-                        obj = BoxDocked(x, y)
-                        subscreen.blit(obj.image, obj.rect)
-            
-            # Draw animated player (moving backward)
-            start_x = self.undo_animation_start_pos[1] * tile_size
-            start_y = self.undo_animation_start_pos[0] * tile_size
-            end_x = self.undo_animation_end_pos[1] * tile_size
-            end_y = self.undo_animation_end_pos[0] * tile_size
-            
-            current_x = start_x + (end_x - start_x) * progress
-            current_y = start_y + (end_y - start_y) * progress
-            
-            player = Worker(current_x, current_y)
-            subscreen.blit(player.image, player.rect)
-            
-            # Draw animated box if one is being moved
-            if self.undo_animation_box_start and self.undo_animation_box_end:
-                box_start_x = self.undo_animation_box_start[1] * tile_size
-                box_start_y = self.undo_animation_box_start[0] * tile_size
-                box_end_x = self.undo_animation_box_end[1] * tile_size
-                box_end_y = self.undo_animation_box_end[0] * tile_size
-                
-                box_current_x = box_start_x + (box_end_x - box_start_x) * progress
-                box_current_y = box_start_y + (box_end_y - box_start_y) * progress
-                
-                # Determine box type based on destination in previous state
-                is_docked = False
-                if self.undo_previous_state and self.undo_animation_box_end:
-                    row, col = self.undo_animation_box_end
-                    if row < len(self.undo_previous_state) and col < len(self.undo_previous_state[0]):
-                        is_docked = self.undo_previous_state[row][col] == '*'
-                
-                if is_docked:
-                    box = BoxDocked(box_current_x, box_current_y)
-                else:
-                    box = Box(box_current_x, box_current_y)
-                    
+                box_current_x = self.animation_box_start[1] * tile_size + (self.animation_box_end[1] - self.animation_box_start[1]) * tile_size * progress
+                box_current_y = self.animation_box_start[0] * tile_size + (self.animation_box_end[0] - self.animation_box_start[0]) * tile_size * progress
+
+                is_docked = self.game.matrix[self.animation_box_end[0]][self.animation_box_end[1]] == '*'
+                box = BoxDocked(box_current_x, box_current_y) if is_docked else Box(box_current_x, box_current_y)
                 subscreen.blit(box.image, box.rect)
 
+        # Handle undo animation (moving backward)
+        elif self.undo_animation_in_progress:
+            elapsed = current_time - self.undo_animation_start_time
+            progress = min(1.0, elapsed / self.undo_animation_duration)
+
+            if progress >= 1.0:
+                # Undo animation complete
+                self.undo_animation_in_progress = False
+
+                # Correct move_count (only now, after animation finishes)
+                if self.move_count > 0:
+                    self.move_count -= 1
+
+                # Update game state (apply the previous matrix)
+                if self.undo_previous_state:
+                    self.game.matrix = copy.deepcopy(self.undo_previous_state)
+                    self.game.player = self.find_player_and_box_positions(self.game.matrix)  # Cập nhật lại vị trí player
+                    self.undo_previous_state = None
+                    # Pop last saved state
+                    if self.game.stack_matrix:
+                        self.game.stack_matrix.pop()
+
+                self.game_completed = self.game.is_completed(self.dock_list)
+                if not self.game_completed:
+                    self.show_congrats = False
+                    
+                if self.pending_undo > 0:
+                    self.pending_undo -= 1
+                    self.undo_move()
+                    
+                self.game.print_game(subscreen)
+                return
+
+            # Draw static parts
+            for row_index, row in enumerate(self.game.matrix):
+                for col_index, char in enumerate(row):
+                    if (row_index, col_index) in [
+                        self.undo_animation_start_pos,
+                        self.undo_animation_end_pos,
+                        self.undo_animation_box_start,
+                        self.undo_animation_box_end,
+                    ]:
+                        continue
+
+                    x, y = col_index * tile_size, row_index * tile_size
+                    self.draw_tile(char, x, y, subscreen)
+
+            # Draw moving player (backward)
+            current_x = self.undo_animation_start_pos[1] * tile_size + (self.undo_animation_end_pos[1] - self.undo_animation_start_pos[1]) * tile_size * progress
+            current_y = self.undo_animation_start_pos[0] * tile_size + (self.undo_animation_end_pos[0] - self.undo_animation_start_pos[0]) * tile_size * progress
+
+            player = Worker(current_x, current_y)
+            subscreen.blit(player.image, player.rect)
+
+            # Draw moving box if needed
+            if self.undo_animation_box_start and self.undo_animation_box_end:
+                box_current_x = self.undo_animation_box_start[1] * tile_size + (self.undo_animation_box_end[1] - self.undo_animation_box_start[1]) * tile_size * progress
+                box_current_y = self.undo_animation_box_start[0] * tile_size + (self.undo_animation_box_end[0] - self.undo_animation_box_start[0]) * tile_size * progress
+
+                is_docked = False
+                if self.undo_previous_state:
+                    row, col = self.undo_animation_box_end
+                    if self.undo_previous_state[row][col] == '*':
+                        is_docked = True
+
+                box = BoxDocked(box_current_x, box_current_y) if is_docked else Box(box_current_x, box_current_y)
+                subscreen.blit(box.image, box.rect)
+
+    def draw_tile(self, char, x, y, subscreen):
+        """Helper to draw a tile based on its character."""
+        if char == '#':
+            obj = Wall(x, y)
+        elif char == '.':
+            obj = Dock(x, y)
+        elif char == '$':
+            obj = Box(x, y)
+        elif char == '*':
+            obj = BoxDocked(x, y)
+        else:
+            return  # Nothing to draw
+        subscreen.blit(obj.image, obj.rect)
     def draw_rounded_rect(self, surface, color, rect, radius, border_width=0):
         """Draw a rounded rectangle with proper corners"""
         rect = pygame.Rect(rect)
@@ -1088,11 +1120,12 @@ class SokobanGUI:
                 border_radius=8
             )
 
-
             # Update display
             pygame.display.flip()
             self.clock.tick(60)
 
+        # Stop all sounds before quitting
+        pygame.mixer.quit()
         pygame.quit()
         sys.exit()
 
