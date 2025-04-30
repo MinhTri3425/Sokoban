@@ -24,7 +24,7 @@ def bfs(start_state):
         if current.is_goal():
             end = time.time()
             print("Processing BFS ...")
-            print("Node visited:", node_count)
+            print("Node count:", node_count)
             print("Execution time:", round(end - start, 4), "seconds")
             return reconstruct_path(current, parent)
         

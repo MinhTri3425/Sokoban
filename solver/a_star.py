@@ -36,35 +36,35 @@ def heuristic(state):
     return worker_toBox(state) + box_toDock(state)
 
 def a_star(start_state):
-    open_set = []  # Danh sách mở: các trạng thái cần khám phá
-    closed_set = set()  # Danh sách đóng: các trạng thái đã xử lý
-    came_from = {}  # Lưu trạng thái cha
-    g_score = {start_state: 0}  # Chi phí từ start đến trạng thái
-    f_score = {start_state: heuristic(start_state)}  # Chi phí ước tính tổng
-    node_count = 0  # Đếm số node đã xử lý
-    counter = count()  # Phân biệt trạng thái có cùng f_score
+    open_set = []  
+    closed_set = set()  
+    came_from = {}  
+    g_score = {start_state: 0} 
+    f_score = {start_state: heuristic(start_state)}  
+    node_count = 0  
+    counter = count()  
     start = time.time()
 
     heappush(open_set, (f_score[start_state], next(counter), start_state))
 
     while open_set:
-        _, _, current = heappop(open_set)  # Lấy trạng thái có f_score thấp nhất
-        if current in closed_set:  # Bỏ qua nếu đã xử lý
+        _, _, current = heappop(open_set)
+        if current in closed_set:  
             continue
-        closed_set.add(current)  # Thêm vào closed_set
+        closed_set.add(current)  
         node_count += 1
 
-        if current.is_goal():  # Kiểm tra mục tiêu
+        if current.is_goal():  
             end = time.time()
             print("Processing A* ...")
-            print("Node visited:", node_count)
+            print("Node count:", node_count)
             print("Execution time:", round(end - start, 4), "seconds")
             return reconstruct_a_star_path(current, came_from, g_score)
 
-        for neighbor in current.get_successors():  # Kiểm tra các trạng thái con
-            if neighbor.is_deadlock() or neighbor in closed_set:  # Bỏ qua nếu kẹt hoặc đã xử lý
+        for neighbor in current.get_successors(): 
+            if neighbor.is_deadlock() or neighbor in closed_set:  
                 continue
-            tentative_g = g_score[current] + 1  # Chi phí đến neighbor qua current
+            tentative_g = g_score[current] + 1  
             if neighbor not in g_score or tentative_g < g_score[neighbor]:
                 came_from[neighbor] = current
                 g_score[neighbor] = tentative_g
