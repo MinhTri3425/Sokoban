@@ -124,7 +124,7 @@ class SokobanGUI:
         self.undo_current_state = None
         
         # Load fonts
-        font_path = pygame.font.match_font("freesansbold")
+        font_path = pygame.font.match_font("arial")
         self.font = pygame.font.Font(font_path, 24)
         self.small_font = pygame.font.Font(font_path, 18)
         self.title_font = pygame.font.Font(font_path, 32)
@@ -155,15 +155,15 @@ class SokobanGUI:
                 
             # Load background music
             self.background_music = pygame.mixer.Sound(os.path.join("Sound", "backgroud.mp3"))
-            self.background_music.set_volume(0.8)  # Set volume to 50%
+            self.background_music.set_volume(0.8)
             
             # Load victory sound
             self.victory_sound = pygame.mixer.Sound(os.path.join("Sound", "victory.mp3"))
-            self.victory_sound.set_volume(1.0)  # Set volume to 70%
+            self.victory_sound.set_volume(1.0) 
             
             # Load move sound
             self.move_sound = pygame.mixer.Sound(os.path.join("Sound", "move.wav"))
-            self.move_sound.set_volume(0.5)  # Set volume to 60%
+            self.move_sound.set_volume(0.08)  
             
             print("All sounds loaded successfully")
         except Exception as e:
