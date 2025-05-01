@@ -1,6 +1,5 @@
-from gui import SokobanGUI
+from GUI.gui_main import SokobanGUIMain
 
 if __name__ == "__main__":
-    import random
-    game = SokobanGUI()
+    game = SokobanGUIMain()
     game.run()
