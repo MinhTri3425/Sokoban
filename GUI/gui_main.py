@@ -36,6 +36,9 @@ class SokobanGUIMain:
             if self.gui_init.game_completed:
                 self.gui_game.update_confetti()
 
+            # Process pending undo requests
+            self.gui_game.process_pending_undo()
+
             # Fill screen with background color
             self.gui_init.screen.fill(self.gui_init.BACKGROUND_COLOR)
 

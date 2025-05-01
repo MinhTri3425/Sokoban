@@ -15,12 +15,13 @@ class SokobanGUIGame:
     def __init__(self, gui_init):
         self.gui_init = gui_init
         self.gui_sound = SokobanGUISound(gui_init)
+        self.undo_queue = []  # Hàng đợi lưu trữ các lệnh undo
 
     def find_player_and_box_positions(self, matrix):
         player_pos = None
         for i in range(len(matrix)):
             for j in range(len(matrix[i])):
-                if matrix[i][j] == '@' or matrix[i][j] == '+':
+                if matrix[i][j] in ['@', '+']:
                     player_pos = (i, j)
                     break
             if player_pos:
@@ -28,10 +29,11 @@ class SokobanGUIGame:
         return player_pos
 
     def find_differences(self, old_matrix, new_matrix):
+        print("Finding differences between matrices")
         old_player_pos = self.find_player_and_box_positions(old_matrix)
         new_player_pos = self.find_player_and_box_positions(new_matrix)
-        if old_player_pos == new_player_pos:
-            return old_player_pos, new_player_pos, None, None
+        print(f"Old player pos: {old_player_pos}, New player pos: {new_player_pos}")
+        
         old_box_positions = []
         new_box_positions = []
         for i in range(len(old_matrix)):
@@ -40,25 +42,33 @@ class SokobanGUIGame:
                     old_box_positions.append((i, j))
                 if new_matrix[i][j] in ['$', '*'] and old_matrix[i][j] not in ['$', '*']:
                     new_box_positions.append((i, j))
+        
+        box_moved = False
+        old_box_pos = None
+        new_box_pos = None
         if len(old_box_positions) == 1 and len(new_box_positions) == 1:
-            return old_player_pos, new_player_pos, old_box_positions[0], new_box_positions[0]
-        return old_player_pos, new_player_pos, None, None
+            old_box_pos = old_box_positions[0]
+            new_box_pos = new_box_positions[0]
+            box_moved = True
+            print(f"Box moved: from {old_box_pos} to {new_box_pos}")
+        
+        return old_player_pos, new_player_pos, old_box_pos, new_box_pos
 
     def undo_move(self):
-        if self.gui_init.animation_in_progress:
+        print(f"undo_move called: move_count={self.gui_init.move_count}, stack_len={len(self.gui_init.game.stack_matrix)}, undo_queue={len(self.undo_queue)}")
+        if self.gui_init.move_count <= 0 or not self.gui_init.game.stack_matrix:
+            self.undo_queue = []
+            print("Undo blocked: Invalid state")
             return
-        if self.gui_init.undo_animation_in_progress:
-            self.gui_init.pending_undo += 1
-            return
-        if not self.gui_init.game.stack_matrix:
+        if self.gui_init.animation_in_progress or self.gui_init.undo_animation_in_progress:
+            self.undo_queue.append(True)
+            print(f"Undo queued: undo_queue={len(self.undo_queue)}")
             return
         current_state = copy.deepcopy(self.gui_init.game.matrix)
         previous_state = copy.deepcopy(self.gui_init.game.stack_matrix[-1])
         old_player_pos, new_player_pos, old_box_pos, new_box_pos = self.find_differences(previous_state, current_state)
-        if old_player_pos is None or new_player_pos is None:
-            old_player_pos = self.find_player_and_box_positions(previous_state)
-            new_player_pos = self.find_player_and_box_positions(current_state)
-        if old_player_pos and new_player_pos:
+        
+        if old_player_pos and new_player_pos and (old_player_pos != new_player_pos or old_box_pos):
             self.gui_init.undo_animation_in_progress = True
             self.gui_init.undo_animation_start_time = pygame.time.get_ticks()
             self.gui_init.undo_animation_start_pos = new_player_pos
@@ -71,9 +81,28 @@ class SokobanGUIGame:
                 self.gui_init.undo_animation_box_end = None
             self.gui_init.undo_previous_state = previous_state
             self.gui_sound.play_move_sound()
+            print(f"Undo started: player from {new_player_pos} to {old_player_pos}, box from {new_box_pos} to {old_box_pos}")
         else:
-            print("Could not determine player positions for undo animation")
+            print("Undo skipped: No valid movement detected")
+            self.gui_init.move_count -= 1
+            self.gui_init.game.matrix = copy.deepcopy(previous_state)
+            self.gui_init.game.player = self.find_player_and_box_positions(self.gui_init.game.matrix)
+            if self.gui_init.game.stack_matrix:
+                self.gui_init.game.stack_matrix.pop()
+            self.undo_queue = []
             self.gui_sound.play_move_sound()
+            print(f"Undo completed without animation: player_pos={self.gui_init.game.player}, move_count={self.gui_init.move_count}, stack_len={len(self.gui_init.game.stack_matrix)}")
+
+    def process_pending_undo(self):
+        print(f"process_pending_undo: undo_queue={len(self.undo_queue)}, move_count={self.gui_init.move_count}, anim_in_progress={self.gui_init.animation_in_progress or self.gui_init.undo_animation_in_progress}")
+        if self.undo_queue and not self.gui_init.animation_in_progress and not self.gui_init.undo_animation_in_progress:
+            if self.gui_init.move_count <= 0 or not self.gui_init.game.stack_matrix:
+                self.undo_queue = []
+                print("Pending undo cleared: Invalid state")
+                return
+            self.undo_queue.pop(0)
+            self.undo_move()
+            print("Processed one undo from queue")
 
     def apply_solution_move(self):
         if not self.gui_init.solving or self.gui_init.solution_index >= len(self.gui_init.solution_path) or self.gui_init.animation_in_progress or self.gui_init.undo_animation_in_progress:
@@ -91,7 +120,9 @@ class SokobanGUIGame:
         self.gui_init.last_solution_move_time = now
 
     def make_move(self, direction):
+        print(f"make_move called: direction={direction}, move_count={self.gui_init.move_count}, stack_len={len(self.gui_init.game.stack_matrix)}")
         if self.gui_init.game_completed or self.gui_init.animation_in_progress or self.gui_init.undo_animation_in_progress:
+            print("Move blocked: Game completed or animation in progress")
             return
         old_matrix = copy.deepcopy(self.gui_init.game.matrix)
         player_pos = self.gui_init.game.getPosition()
@@ -100,6 +131,7 @@ class SokobanGUIGame:
         if (new_player_row < 0 or new_player_row >= len(self.gui_init.game.matrix) or
             new_player_col < 0 or new_player_col >= len(self.gui_init.game.matrix[0]) or
             self.gui_init.game.matrix[new_player_row][new_player_col] == '#'):
+            print("Move blocked: Invalid position or wall")
             return
         pushing_box = False
         box_new_row, box_new_col = None, None
@@ -110,24 +142,25 @@ class SokobanGUIGame:
             if (box_new_row < 0 or box_new_row >= len(self.gui_init.game.matrix) or
                 box_new_col < 0 or box_new_col >= len(self.gui_init.game.matrix[0]) or
                 self.gui_init.game.matrix[box_new_row][box_new_col] in ['#', '$', '*']):
+                print("Move blocked: Box cannot be pushed")
                 return
-        self.gui_init.game.stack_matrix.append(copy.deepcopy(self.gui_init.game.matrix))
-        self.gui_init.animation_in_progress = True
-        self.gui_init.animation_start_time = pygame.time.get_ticks()
-        self.gui_init.animation_start_pos = player_pos
-        self.gui_init.animation_end_pos = (new_player_row, new_player_col)
-        self.gui_init.animation_direction = direction
-        if pushing_box:
-            box_char = self.gui_init.game.matrix[new_player_row][new_player_col]
-            self.gui_init.animation_box_start = (new_player_row, new_player_col)
-            self.gui_init.animation_box_end = (box_new_row, box_new_col)
-        else:
-            self.gui_init.animation_box_start = None
-            self.gui_init.animation_box_end = None
         self.gui_init.game.move(*direction, self.gui_init.dock_list)
         if old_matrix != self.gui_init.game.matrix:
+            self.gui_init.game.stack_matrix.append(copy.deepcopy(self.gui_init.game.matrix))
             self.gui_init.move_count += 1
+            self.gui_init.animation_in_progress = True
+            self.gui_init.animation_start_time = pygame.time.get_ticks()
+            self.gui_init.animation_start_pos = player_pos
+            self.gui_init.animation_end_pos = (new_player_row, new_player_col)
+            self.gui_init.animation_direction = direction
+            if pushing_box:
+                self.gui_init.animation_box_start = (new_player_row, new_player_col)
+                self.gui_init.animation_box_end = (box_new_row, box_new_col)
+            else:
+                self.gui_init.animation_box_start = None
+                self.gui_init.animation_box_end = None
             self.gui_sound.play_move_sound()
+            print(f"Move completed: move_count={self.gui_init.move_count}, new player_pos={(new_player_row, new_player_col)}, stack_len={len(self.gui_init.game.stack_matrix)}")
             if self.gui_init.game.is_completed(self.gui_init.dock_list) and not self.gui_init.game_completed:
                 self.gui_init.game_completed = True
                 self.gui_init.show_congrats = True
@@ -135,6 +168,8 @@ class SokobanGUIGame:
                 self.gui_init.congrats_fade_in = True
                 self.create_confetti()
                 self.gui_sound.play_victory_sound()
+        else:
+            print("Move skipped: No change in matrix")
 
     def create_confetti(self):
         self.gui_init.confetti = []
@@ -224,7 +259,13 @@ class SokobanGUIGame:
             progress = min(1.0, elapsed / self.gui_init.animation_duration)
             if progress >= 1.0:
                 self.gui_init.animation_in_progress = False
+                self.gui_init.animation_start_pos = None
+                self.gui_init.animation_end_pos = None
+                self.gui_init.animation_box_start = None
+                self.gui_init.animation_box_end = None
+                self.gui_init.animation_direction = None
                 self.gui_init.game.print_game(subscreen)
+                print("Move animation completed")
                 return
             for row_index, row in enumerate(self.gui_init.game.matrix):
                 for col_index, char in enumerate(row):
@@ -252,20 +293,21 @@ class SokobanGUIGame:
             progress = min(1.0, elapsed / self.gui_init.undo_animation_duration)
             if progress >= 1.0:
                 self.gui_init.undo_animation_in_progress = False
-                if self.gui_init.move_count > 0:
+                if self.gui_init.move_count > 0 and self.gui_init.undo_previous_state:
                     self.gui_init.move_count -= 1
-                if self.gui_init.undo_previous_state:
                     self.gui_init.game.matrix = copy.deepcopy(self.gui_init.undo_previous_state)
                     self.gui_init.game.player = self.find_player_and_box_positions(self.gui_init.game.matrix)
-                    self.gui_init.undo_previous_state = None
                     if self.gui_init.game.stack_matrix:
                         self.gui_init.game.stack_matrix.pop()
+                    print(f"Undo completed: player_pos={self.gui_init.game.player}, move_count={self.gui_init.move_count}, stack_len={len(self.gui_init.game.stack_matrix)}")
+                self.gui_init.undo_previous_state = None
+                self.gui_init.undo_animation_start_pos = None
+                self.gui_init.undo_animation_end_pos = None
+                self.gui_init.undo_animation_box_start = None
+                self.gui_init.undo_animation_box_end = None
                 self.gui_init.game_completed = self.gui_init.game.is_completed(self.gui_init.dock_list)
                 if not self.gui_init.game_completed:
                     self.gui_init.show_congrats = False
-                if self.gui_init.pending_undo > 0:
-                    self.gui_init.pending_undo -= 1
-                    self.undo_move()
                 self.gui_init.game.print_game(subscreen)
                 return
             for row_index, row in enumerate(self.gui_init.game.matrix):
@@ -289,8 +331,8 @@ class SokobanGUIGame:
                 is_docked = False
                 if self.gui_init.undo_previous_state:
                     row, col = self.gui_init.undo_animation_box_end
-                    if self.gui_init.undo_previous_state[row][col] == '*':
-                        is_docked = True
+                    if 0 <= row < len(self.gui_init.undo_previous_state) and 0 <= col < len(self.gui_init.undo_previous_state[row]):
+                        is_docked = self.gui_init.undo_previous_state[row][col] == '*'
                 box = BoxDocked(box_current_x, box_current_y) if is_docked else Box(box_current_x, box_current_y)
                 subscreen.blit(box.image, box.rect)
 
