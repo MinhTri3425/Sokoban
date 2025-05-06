@@ -102,7 +102,7 @@ class SokobanGUIGame:
         self.gui_init.last_solution_move_time = now
 
     def make_move(self, direction):
-        print(f"make_move called: direction={direction}, move_count={self.gui_init.move_count}, stack_len={len(self.gui_init.game.stack_matrix)}")
+        # print(f"make_move called: direction={direction}, move_count={self.gui_init.move_count}, stack_len={len(self.gui_init.game.stack_matrix)}")
         if self.gui_init.game_completed or self.gui_init.animation_in_progress or self.gui_init.undo_animation_in_progress:
             print("Move blocked: Game completed or animation in progress")
             return
@@ -142,7 +142,7 @@ class SokobanGUIGame:
                 self.gui_init.animation_box_start = None
                 self.gui_init.animation_box_end = None
             self.gui_sound.play_move_sound()
-            print(f"Move completed: move_count={self.gui_init.move_count}, new player_pos={(new_player_row, new_player_col)}, stack_len={len(self.gui_init.game.stack_matrix)}")
+            # print(f"Move completed: move_count={self.gui_init.move_count}, new player_pos={(new_player_row, new_player_col)}, stack_len={len(self.gui_init.game.stack_matrix)}")
             if self.gui_init.game.is_completed(self.gui_init.dock_list) and not self.gui_init.game_completed:
                 self.gui_init.game_completed = True
                 self.gui_init.show_congrats = True
@@ -247,7 +247,7 @@ class SokobanGUIGame:
                 self.gui_init.animation_box_end = None
                 self.gui_init.animation_direction = None
                 self.gui_init.game.print_game(subscreen)
-                print("Move animation completed")
+                # print("Move animation completed")
                 return
             for row_index, row in enumerate(self.gui_init.game.matrix):
                 for col_index, char in enumerate(row):
@@ -281,7 +281,7 @@ class SokobanGUIGame:
                     self.gui_init.game.player = self.find_player_and_box_positions(self.gui_init.game.matrix)
                     if self.gui_init.game.stack_matrix:
                         self.gui_init.game.stack_matrix.pop()
-                    print(f"Undo completed: player_pos={self.gui_init.game.player}, move_count={self.gui_init.move_count}, stack_len={len(self.gui_init.game.stack_matrix)}")
+                    # print(f"Undo completed: player_pos={self.gui_init.game.player}, move_count={self.gui_init.move_count}, stack_len={len(self.gui_init.game.stack_matrix)}")
                 self.gui_init.undo_previous_state = None
                 self.gui_init.undo_animation_start_pos = None
                 self.gui_init.undo_animation_end_pos = None
