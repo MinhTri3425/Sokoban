@@ -54,37 +54,31 @@ class SokobanGUIGame:
         return old_player_pos, new_player_pos, old_box_pos, new_box_pos
 
     def undo_move(self):
-        if self.gui_init.move_count <= 0 or not self.gui_init.game.stack_matrix:
-            print("Undo blocked: No more moves to undo")
+
+        if not self.gui_init.game.stack_matrix:
+            print("Undo blocked: No previous moves to undo")
             return
+        previous_state = self.gui_init.game.stack_matrix.pop() 
 
-        if self.gui_init.animation_in_progress or self.gui_init.undo_animation_in_progress:
-            print("Undo blocked: Animation in progress")
-            return
+        old_matrix = copy.deepcopy(self.gui_init.game.matrix)  
+        self.gui_init.game.matrix = copy.deepcopy(previous_state) 
 
-        current_state = copy.deepcopy(self.gui_init.game.matrix)
-        previous_state = copy.deepcopy(self.gui_init.game.stack_matrix[-1])
-        old_player_pos, new_player_pos, old_box_pos, new_box_pos = self.find_differences(previous_state, current_state)
 
-        if old_player_pos and new_player_pos and (old_player_pos != new_player_pos or old_box_pos):
-            # Bắt đầu animation undo
-            self.gui_init.undo_animation_in_progress = True
-            self.gui_init.undo_animation_start_time = pygame.time.get_ticks()
-            self.gui_init.undo_animation_start_pos = new_player_pos
-            self.gui_init.undo_animation_end_pos = old_player_pos
-            self.gui_init.undo_animation_box_start = new_box_pos
-            self.gui_init.undo_animation_box_end = old_box_pos
-            self.gui_init.undo_previous_state = previous_state
-            self.gui_sound.play_move_sound()
-            print(f"Undo animation started: player from {new_player_pos} to {old_player_pos}")
-        else:
-            # Không có gì cần animate → undo ngay lập tức
-            self.gui_init.move_count -= 1
-            self.gui_init.game.matrix = previous_state
-            self.gui_init.game.player = self.find_player_and_box_positions(previous_state)
-            self.gui_init.game.stack_matrix.pop()
-            self.gui_sound.play_move_sound()
-            print(f"Undo applied instantly: player_pos={self.gui_init.game.player}")
+        self.gui_init.game.player = self.find_player_and_box_positions(self.gui_init.game.matrix)[0]
+        self.gui_init.game.boxes = self.find_player_and_box_positions(self.gui_init.game.matrix)[1]
+        self.gui_init.game.print_game(self.gui_init.screen)
+
+        if old_matrix != self.gui_init.game.matrix:
+            if self.gui_init.move_count > 0:
+                self.gui_init.move_count -= 1
+            #print(f"Move count after undo: {self.gui_init.move_count}")
+
+        #print("Undo applied successfully.")
+
+
+
+
+
 
     def apply_solution_move(self):
         if not self.gui_init.solving or self.gui_init.solution_index >= len(self.gui_init.solution_path) or self.gui_init.animation_in_progress or self.gui_init.undo_animation_in_progress:
