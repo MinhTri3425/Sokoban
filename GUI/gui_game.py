@@ -56,7 +56,7 @@ class SokobanGUIGame:
     def undo_move(self):
 
         if not self.gui_init.game.stack_matrix:
-            print("Undo blocked: No previous moves to undo")
+           # print("Undo blocked: No previous moves to undo")
             return
         previous_state = self.gui_init.game.stack_matrix.pop() 
 
@@ -74,11 +74,6 @@ class SokobanGUIGame:
             #print(f"Move count after undo: {self.gui_init.move_count}")
 
         #print("Undo applied successfully.")
-
-
-
-
-
 
     def apply_solution_move(self):
         if not self.gui_init.solving or self.gui_init.solution_index >= len(self.gui_init.solution_path) or self.gui_init.animation_in_progress or self.gui_init.undo_animation_in_progress:
@@ -98,7 +93,7 @@ class SokobanGUIGame:
     def make_move(self, direction):
         # print(f"make_move called: direction={direction}, move_count={self.gui_init.move_count}, stack_len={len(self.gui_init.game.stack_matrix)}")
         if self.gui_init.game_completed or self.gui_init.animation_in_progress or self.gui_init.undo_animation_in_progress:
-            print("Move blocked: Game completed or animation in progress")
+            #print("Move blocked: Game completed or animation in progress")
             return
         old_matrix = copy.deepcopy(self.gui_init.game.matrix)
         player_pos = self.gui_init.game.getPosition()
@@ -107,7 +102,7 @@ class SokobanGUIGame:
         if (new_player_row < 0 or new_player_row >= len(self.gui_init.game.matrix) or
             new_player_col < 0 or new_player_col >= len(self.gui_init.game.matrix[0]) or
             self.gui_init.game.matrix[new_player_row][new_player_col] == '#'):
-            print("Move blocked: Invalid position or wall")
+           # print("Move blocked: Invalid position or wall")
             return
         pushing_box = False
         box_new_row, box_new_col = None, None
@@ -118,7 +113,7 @@ class SokobanGUIGame:
             if (box_new_row < 0 or box_new_row >= len(self.gui_init.game.matrix) or
                 box_new_col < 0 or box_new_col >= len(self.gui_init.game.matrix[0]) or
                 self.gui_init.game.matrix[box_new_row][box_new_col] in ['#', '$', '*']):
-                print("Move blocked: Box cannot be pushed")
+               # print("Move blocked: Box cannot be pushed")
                 return
         self.gui_init.game.move(*direction, self.gui_init.dock_list)
         if old_matrix != self.gui_init.game.matrix:

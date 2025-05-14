@@ -71,7 +71,6 @@ class State:
         for (x, y) in self.boxes:
             if self.map_data[x][y] == '.':
                 continue  # Không deadlock nếu box đang ở mục tiêu
-
             walls = ['#']
             # Kiểm tra biên trước khi truy cập
             top = self.map_data[x-1][y] if x > 0 else '#'
