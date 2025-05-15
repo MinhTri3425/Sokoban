@@ -80,6 +80,13 @@ class SokobanGUIUI:
             self.dpad_size, self.dpad_size
         )
 
+        # Algorithm comparison button
+        self.joy_compare = pygame.Rect(
+            self.joycon_right_center_x - button_width // 2,
+            algo_center_y + self.dpad_size + self.dpad_spacing * 3,
+            button_width, button_height
+        )
+
         # Level navigation buttons
         self.circle_button_radius = 18
         self.padding = 45
@@ -164,6 +171,7 @@ class SokobanGUIUI:
         self.draw_diamond_button(self.joy_dfs, "DFS", self.gui_init.DARK_BLUE)
         self.draw_diamond_button(self.joy_astar, "A*", self.gui_init.YELLOW, self.gui_init.BLACK)
         self.draw_diamond_button(self.joy_stop, "Stop", self.gui_init.RED if self.gui_init.solving else self.gui_init.GRAY)
+        self.draw_joy_con_button(self.joy_compare, "Compare", self.gui_init.GREEN)
         self.draw_circle_button(self.minus_button_x, self.minus_button_y, self.circle_button_radius, self.gui_init.BLACK, "-")
         self.draw_circle_button(self.plus_button_x, self.plus_button_y, self.circle_button_radius, self.gui_init.BLACK, "+")
 

@@ -55,6 +55,10 @@ class SokobanGUIMain:
             # Draw congratulations overlay
             if self.gui_init.show_congrats:
                 self.gui_game.draw_congratulations(subscreen)
+                
+            # Draw algorithm comparison results if comparing
+            if self.gui_init.comparing:
+                self.gui_game.draw_comparison_results(subscreen)
 
             # Draw UI elements
             self.gui_ui.draw_ui()

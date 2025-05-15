@@ -5,6 +5,12 @@ class State:
         self.boxes = frozenset(boxes)  #Set [(x,y)] dung lam key
         self.map_data = map_data #2D list
 
+        self.walls = set()
+        for i, row in enumerate(map_data):
+            for j, val in enumerate(row):
+                if val == '#':
+                    self.walls.add((i, j))
+                    
     def is_goal(self):
         targets = self.get_targets()
         return all(pos in targets for pos in self.boxes)

@@ -67,6 +67,12 @@ class SokobanGUIInit:
         self.congrats_fade_in = True
         self.pending_undo = 0
 
+        # Algorithm comparison
+        self.comparing = False
+        self.comparison_results = {}
+        self.comparison_start_time = 0
+        self.comparison_duration = 0
+
         # Animation variables
         self.animation_in_progress = False
         self.animation_start_time = 0

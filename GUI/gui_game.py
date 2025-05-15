@@ -319,3 +319,114 @@ class SokobanGUIGame:
         else:
             return
         subscreen.blit(obj.image, obj.rect)
+
+    def draw_comparison_results(self, subscreen):
+        
+        if not self.gui_init.comparing:
+            return
+
+        current_time = pygame.time.get_ticks()
+        if current_time - self.gui_init.comparison_start_time > self.gui_init.comparison_duration:
+            self.gui_init.comparing = False
+            return
+
+        # Draw semi-transparent overlay
+        overlay = pygame.Surface((self.gui_init.screen_width, self.gui_init.screen_height), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 200))  # Giảm độ tối để dễ nhìn hơn
+        subscreen.blit(overlay, (0, 0))
+
+        center_x = self.gui_init.screen_width // 2 - 20
+
+        # Draw title
+        self.gui_init.title_font.set_bold(True)
+        title_text = self.gui_init.title_font.render("Algorithm Comparison", True, self.gui_init.WHITE)
+        title_rect = title_text.get_rect(center=(center_x, 50))
+        subscreen.blit(title_text, title_rect)
+
+        # Draw headers
+        y_pos = 120
+        headers = ["Algorithm", "Time", "Length", "Nodes", "Memory"]
+        col_widths = [0, 120, 240, 360, 470]
+        x_positions = [center_x - 250 + offset for offset in col_widths]
+        
+        for i, header in enumerate(headers):
+            # self.gui_init.font.set_bold(True)
+            header_text = self.gui_init.font.render(header, True, self.gui_init.YELLOW)
+            subscreen.blit(header_text, (x_positions[i], y_pos))
+
+        y_pos += 40
+
+        # Draw results
+        for algorithm in ["BFS", "DFS", "A*"]:
+            if algorithm in self.gui_init.comparison_results:
+                result = self.gui_init.comparison_results[algorithm]
+
+                # Algorithm name
+                algo_text = self.gui_init.font.render(algorithm, True, self.gui_init.WHITE)
+                subscreen.blit(algo_text, (x_positions[0], y_pos))
+
+                # Time
+                time_text = self.gui_init.font.render(f"{result['time']:.4f}", True, self.gui_init.WHITE)
+                subscreen.blit(time_text, (x_positions[1], y_pos))
+
+                # Path length
+                if result["solution_found"]:
+                    path_text = self.gui_init.font.render(f"{result['path_length']}", True, self.gui_init.WHITE)
+                else:
+                    path_text = self.gui_init.font.render("N/A", True, self.gui_init.RED)
+                subscreen.blit(path_text, (x_positions[2], y_pos))
+
+                # Nodes explored
+                nodes_text = self.gui_init.font.render(f"{result['nodes_explored']}", True, self.gui_init.WHITE)
+                subscreen.blit(nodes_text, (x_positions[3], y_pos))
+
+                # Memory peak
+                memory_text = self.gui_init.font.render(f"{result['memory_peak']:.2f}", True, self.gui_init.WHITE)
+                subscreen.blit(memory_text, (x_positions[4], y_pos))
+
+                y_pos += 40
+
+        # Draw conclusion
+        best_time = best_path = None
+        best_time_algo = best_path_algo = None
+
+        for algorithm, result in self.gui_init.comparison_results.items():
+            if result["solution_found"]:
+                if best_time is None or result["time"] < best_time:
+                    best_time = result["time"]
+                    best_time_algo = algorithm
+                if best_path is None or (result["path_length"] > 0 and result["path_length"] < best_path):
+                    best_path = result["path_length"]
+                    best_path_algo = algorithm
+
+        y_pos += 20
+        if best_time_algo:
+            fastest_text = self.gui_init.font.render(f"Fastest: {best_time_algo} ({best_time:.4f}s)", True, self.gui_init.GREEN)
+            subscreen.blit(fastest_text, (center_x - 150, y_pos))
+
+        y_pos += 40
+        if best_path_algo:
+            optimal_text = self.gui_init.font.render(f"Shortest path: {best_path_algo} ({best_path} moves)", True, self.gui_init.GREEN)
+            subscreen.blit(optimal_text, (center_x - 150, y_pos))
+
+        # Draw algorithm characteristics
+        y_pos += 60
+        characteristics = [
+            "BFS: Guarantees shortest path, but uses more memory",
+            "DFS: Uses less memory, but may find longer paths",
+            "A*: Balances speed and path quality using heuristics"
+        ]
+
+        for char in characteristics:
+            char_text = self.gui_init.small_font.render(char, True, self.gui_init.LIGHT_GRAY)
+            subscreen.blit(char_text, (center_x - 200, y_pos))
+            y_pos += 35  # Giãn dòng dễ đọc
+
+        # Draw close instruction with shadow
+        y_pos += 20
+        close_text = self.gui_init.small_font.render("Click anywhere to close", True, self.gui_init.LIGHT_GRAY)
+        close_rect = close_text.get_rect(center=(center_x, y_pos))
+
+        shadow = self.gui_init.small_font.render("Click anywhere to close", True, (0, 0, 0))
+        subscreen.blit(shadow, (close_rect.x + 2, close_rect.y + 2))
+        subscreen.blit(close_text, close_rect)
