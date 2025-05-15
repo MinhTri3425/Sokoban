@@ -15,12 +15,12 @@ def dfs(start_state, max_depth=None, timeout=None):
     while stack:
         current, prev, depth = stack.pop()
 
-        # ⏱ Timeout
+        # Timeout
         if timeout is not None and (time.time() - start_time) > timeout:
-            print("⏰ Timeout exceeded.")
+            print("Timeout exceeded.")
             break
 
-        # ⛔ Depth limit
+        # Depth limit
         if max_depth is not None and depth > max_depth:
             continue
 
@@ -34,7 +34,7 @@ def dfs(start_state, max_depth=None, timeout=None):
             end_time = time.time()
             mem_current, mem_peak = tracemalloc.get_traced_memory()
             tracemalloc.stop()
-            print("✅ DFS Completed")
+            print("DFS Completed")
             print("Node count:", node_count)
             print("Execution time:", round(end_time - start_time, 4), "seconds")
             print("Memory used:", round(mem_current / 1024, 2), "KB")
@@ -49,6 +49,6 @@ def dfs(start_state, max_depth=None, timeout=None):
                 stack.append((next_state, current, depth + 1))
 
     tracemalloc.stop()
-    print("❌ No solution found.")
+    print("No solution found.")
     print("Node count:", node_count)
     return None

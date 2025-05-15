@@ -80,10 +80,10 @@ def a_star(start_state):
 
         if current.is_goal():
             end_time = time.time()
-            print("✅ A* Success")
-            print("🔢 Node count:", node_count)
-            print("⏱️ Time:", round(end_time - start_time, 4), "s")
-            print("📏 Path length:", g_score[current])
+            print("A* Success")
+            print("Node count:", node_count)
+            print("Time:", round(end_time - start_time, 4), "s")
+            print("Path length:", g_score[current])
             return reconstruct_a_star_path(current, came_from, g_score)
 
         for neighbor in current.get_successors():
@@ -99,5 +99,5 @@ def a_star(start_state):
                 f_score[neighbor] = tentative_g + heuristic(neighbor)
                 heappush(open_set, (f_score[neighbor], -count_correct_boxes(neighbor), next(counter), neighbor))
 
-    print("❌ A* failed: no solution found.")
+    print("A* failed: no solution found.")
     return None
