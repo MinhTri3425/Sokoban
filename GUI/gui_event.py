@@ -101,190 +101,248 @@ class SokobanGUIEvent:
 
     def run_bfs(self, state, timeout=10):
         """Run BFS with performance tracking"""
-        visited = set()
-        queue = [(state, [])]
-        nodes_explored = 0
+        try:
+            # Bắt đầu đo thời gian và bộ nhớ
+            tracemalloc.start()
+            start_time = time.time()
         
-        start_time = time.time()
-        tracemalloc.start()
+            # Gọi hàm BFS từ module solver
+            result = bfs(state)
         
-        while queue and time.time() - start_time < timeout:
-            current_state, path = queue.pop(0)
-            nodes_explored += 1
-            
-            if current_state in visited:
-                continue
-                
-            visited.add(current_state)
-            
-            if current_state.is_goal():
-                end_time = time.time()
-                current_memory, peak_memory = tracemalloc.get_traced_memory()
-                tracemalloc.stop()
-                
-                return True, path, {
+            # Kết thúc đo thời gian và bộ nhớ
+            end_time = time.time()
+            current_memory, peak_memory = tracemalloc.get_traced_memory()
+            tracemalloc.stop()
+        
+            if result:
+                path, directions = result
+                return True, directions, {
                     "time": end_time - start_time,
-                    "nodes_explored": nodes_explored,
-                    "path_length": len(path),
+                    "nodes_explored": len(path) if path else 0,
+                    "path_length": len(directions) if directions else 0,
                     "memory_current": current_memory / 1024,
                     "memory_peak": peak_memory / 1024,
                     "solution_found": True
                 }
-                
-            if current_state.is_deadlock():
-                continue
-                
-            for successor in current_state.get_successors():
-                if successor not in visited:
-                    direction = self.get_direction(current_state.player, successor.player)
-                    if direction:
-                        queue.append((successor, path + [direction]))
         
-        end_time = time.time()
-        current_memory, peak_memory = tracemalloc.get_traced_memory()
-        tracemalloc.stop()
-        
-        return False, None, {
-            "time": end_time - start_time,
-            "nodes_explored": nodes_explored,
-            "path_length": 0,
-            "memory_current": current_memory / 1024,
-            "memory_peak": peak_memory / 1024,
-            "solution_found": False
-        }
+            return False, None, {
+                "time": end_time - start_time,
+                "nodes_explored": 0,
+                "path_length": 0,
+                "memory_current": current_memory / 1024,
+                "memory_peak": peak_memory / 1024,
+                "solution_found": False
+            }
+        except Exception as e:
+            print(f"Error in BFS: {e}")
+            tracemalloc.stop()
+            return False, None, {
+                "time": 0,
+                "nodes_explored": 0,
+                "path_length": 0,
+                "memory_current": 0,
+                "memory_peak": 0,
+                "solution_found": False
+            }
 
     def run_dfs(self, state, timeout=10):
         """Run DFS with performance tracking"""
-        visited = set()
-        stack = [(state, [])]
-        nodes_explored = 0
+        try:
+            # Bắt đầu đo thời gian và bộ nhớ
+            tracemalloc.start()
+            start_time = time.time()
         
-        start_time = time.time()
-        tracemalloc.start()
+            # Gọi hàm DFS từ module solver
+            result = dfs(state)
         
-        while stack and time.time() - start_time < timeout:
-            current_state, path = stack.pop()
-            nodes_explored += 1
-            
-            if current_state in visited:
-                continue
-                
-            visited.add(current_state)
-            
-            if current_state.is_goal():
-                end_time = time.time()
-                current_memory, peak_memory = tracemalloc.get_traced_memory()
-                tracemalloc.stop()
-                
-                return True, path, {
+            # Kết thúc đo thời gian và bộ nhớ
+            end_time = time.time()
+            current_memory, peak_memory = tracemalloc.get_traced_memory()
+            tracemalloc.stop()
+        
+            if result:
+                path, directions = result
+                return True, directions, {
                     "time": end_time - start_time,
-                    "nodes_explored": nodes_explored,
-                    "path_length": len(path),
+                    "nodes_explored": len(path) if path else 0,
+                    "path_length": len(directions) if directions else 0,
                     "memory_current": current_memory / 1024,
                     "memory_peak": peak_memory / 1024,
                     "solution_found": True
                 }
-                
-            if current_state.is_deadlock():
-                continue
-                
-            for successor in reversed(current_state.get_successors()):
-                if successor not in visited:
-                    direction = self.get_direction(current_state.player, successor.player)
-                    if direction:
-                        stack.append((successor, path + [direction]))
         
-        end_time = time.time()
-        current_memory, peak_memory = tracemalloc.get_traced_memory()
-        tracemalloc.stop()
-        
-        return False, None, {
-            "time": end_time - start_time,
-            "nodes_explored": nodes_explored,
-            "path_length": 0,
-            "memory_current": current_memory / 1024,
-            "memory_peak": peak_memory / 1024,
-            "solution_found": False
-        }
+            return False, None, {
+                "time": end_time - start_time,
+                "nodes_explored": 0,
+                "path_length": 0,
+                "memory_current": current_memory / 1024,
+                "memory_peak": peak_memory / 1024,
+                "solution_found": False
+            }
+        except Exception as e:
+            print(f"Error in DFS: {e}")
+            tracemalloc.stop()
+            return False, None, {
+                "time": 0,
+                "nodes_explored": 0,
+                "path_length": 0,
+                "memory_current": 0,
+                "memory_peak": 0,
+                "solution_found": False
+            }
 
     def run_astar(self, state, timeout=10):
-        """Run A* with performance tracking"""
-        import heapq
+        """Run A* with performance tracking using a custom wrapper"""
+        try:
+            # Bắt đầu đo thời gian và bộ nhớ
+            tracemalloc.start()
+            start_time = time.time()
         
-        # Priority queue for A*
-        open_set = []
-        # Dictionary to store path to each state
-        came_from = {}
-        # Dictionary to store g_score for each state
-        g_score = {state: 0}
-        # Dictionary to store f_score for each state
-        f_score = {state: self.heuristic(state)}
+            # Tạo wrapper cho thuật toán A*
+            result = self.astar_wrapper(state)
         
-        # Add initial state to open set
-        heapq.heappush(open_set, (f_score[state], id(state), state, []))
+            # Kết thúc đo thời gian và bộ nhớ
+            end_time = time.time()
+            current_memory, peak_memory = tracemalloc.get_traced_memory()
+            tracemalloc.stop()
         
-        nodes_explored = 0
-        visited = set()
-        
-        start_time = time.time()
-        tracemalloc.start()
-        
-        while open_set and time.time() - start_time < timeout:
-            _, _, current, path = heapq.heappop(open_set)
-            nodes_explored += 1
-            
-            if current in visited:
-                continue
-                
-            visited.add(current)
-            
-            if current.is_goal():
-                end_time = time.time()
-                current_memory, peak_memory = tracemalloc.get_traced_memory()
-                tracemalloc.stop()
-                
-                return True, path, {
+            if result:
+                path, directions = result
+                return True, directions, {
                     "time": end_time - start_time,
-                    "nodes_explored": nodes_explored,
-                    "path_length": len(path),
+                    "nodes_explored": len(path) if path else 0,
+                    "path_length": len(directions) if directions else 0,
                     "memory_current": current_memory / 1024,
                     "memory_peak": peak_memory / 1024,
                     "solution_found": True
                 }
+        
+            return False, None, {
+                "time": end_time - start_time,
+                "nodes_explored": 0,
+                "path_length": 0,
+                "memory_current": current_memory / 1024,
+                "memory_peak": peak_memory / 1024,
+                "solution_found": False
+            }
+        except Exception as e:
+            print(f"Error in A*: {e}")
+            tracemalloc.stop()
+            return False, None, {
+                "time": 0,
+                "nodes_explored": 0,
+                "path_length": 0,
+                "memory_current": 0,
+                "memory_peak": 0,
+                "solution_found": False
+            }
+
+    def astar_wrapper(self, start_state):
+        """Custom implementation of A* to avoid issues with the original implementation"""
+        from collections import deque
+        import heapq
+        
+        # Hàm heuristic
+        def heuristic(state):
+            targets = state.get_targets()
+            boxes = state.boxes
+            
+            if len(boxes) == 0 or len(targets) == 0:
+                return 0
                 
+            # Tính tổng khoảng cách Manhattan từ mỗi hộp đến mục tiêu gần nhất
+            total_distance = 0
+            for box in boxes:
+                min_distance = float('inf')
+                for target in targets:
+                    distance = abs(box[0] - target[0]) + abs(box[1] - target[1])
+                    min_distance = min(min_distance, distance)
+                total_distance += min_distance
+                
+            return total_distance
+        
+        # Hàm lấy hướng di chuyển
+        def get_direction(from_pos, to_pos):
+            dx = to_pos[0] - from_pos[0]
+            dy = to_pos[1] - from_pos[1]
+            
+            if dx == -1 and dy == 0:
+                return "U"
+            elif dx == 1 and dy == 0:
+                return "D"
+            elif dx == 0 and dy == -1:
+                return "L"
+            elif dx == 0 and dy == 1:
+                return "R"
+            else:
+                return None
+        
+        # Triển khai A*
+        open_set = []
+        closed_set = set()
+        g_score = {start_state: 0}
+        f_score = {start_state: heuristic(start_state)}
+        came_from = {}
+        path_directions = {}
+        
+        # Thêm trạng thái ban đầu vào open_set
+        heapq.heappush(open_set, (f_score[start_state], id(start_state), start_state))
+        
+        while open_set:
+            # Lấy trạng thái có f_score thấp nhất
+            _, _, current = heapq.heappop(open_set)
+            
+            # Kiểm tra nếu đã đạt mục tiêu
+            if current.is_goal():
+                # Tạo đường đi
+                path = []
+                directions = []
+                while current in came_from:
+                    path.append(current)
+                    directions.append(path_directions[current])
+                    current = came_from[current]
+                
+                path.append(start_state)
+                
+                # Đảo ngược để có thứ tự từ start đến goal
+                path.reverse()
+                directions.reverse()
+                
+                return path, directions
+            
+            # Thêm vào closed_set
+            closed_set.add(current)
+            
+            # Kiểm tra deadlock
             if current.is_deadlock():
                 continue
+            
+            # Xem xét tất cả các trạng thái kế tiếp
+            for next_state in current.get_successors():
+                # Bỏ qua nếu đã xem xét
+                if next_state in closed_set:
+                    continue
                 
-            for successor in current.get_successors():
-                if successor in visited:
-                    continue
-                    
-                direction = self.get_direction(current.player, successor.player)
-                if not direction:
-                    continue
-                    
+                # Tính g_score mới
                 tentative_g_score = g_score[current] + 1
                 
-                if successor not in g_score or tentative_g_score < g_score[successor]:
-                    # This path to successor is better than any previous one
-                    g_score[successor] = tentative_g_score
-                    f_score[successor] = tentative_g_score + self.heuristic(successor)
+                # Nếu trạng thái mới hoặc g_score tốt hơn
+                if next_state not in g_score or tentative_g_score < g_score[next_state]:
+                    # Lưu hướng di chuyển
+                    direction = get_direction(current.player, next_state.player)
                     
-                    # Add successor to open set
-                    heapq.heappush(open_set, (f_score[successor], id(successor), successor, path + [direction]))
+                    # Cập nhật thông tin
+                    came_from[next_state] = current
+                    path_directions[next_state] = direction
+                    g_score[next_state] = tentative_g_score
+                    f_score[next_state] = tentative_g_score + heuristic(next_state)
+                    
+                    # Thêm vào open_set nếu chưa có
+                    if next_state not in [item[2] for item in open_set]:
+                        heapq.heappush(open_set, (f_score[next_state], id(next_state), next_state))
         
-        end_time = time.time()
-        current_memory, peak_memory = tracemalloc.get_traced_memory()
-        tracemalloc.stop()
-        
-        return False, None, {
-            "time": end_time - start_time,
-            "nodes_explored": nodes_explored,
-            "path_length": 0,
-            "memory_current": current_memory / 1024,
-            "memory_peak": peak_memory / 1024,
-            "solution_found": False
-        }
+        # Không tìm thấy đường đi
+        return None
 
     def heuristic(self, state):
         """Simple Manhattan distance heuristic for A*"""
