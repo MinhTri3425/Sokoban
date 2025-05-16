@@ -3,32 +3,23 @@ from solver.utils import reconstruct_path
 import time
 import tracemalloc
 
-def dfs(start_state, max_depth=None, timeout=None):
+def dfs(start_state):
     visited = set()
-    stack = deque([(start_state, None, 0)])  # (state, parent, depth)
+    stack = deque()
     parent = dict()
     node_count = 0
 
     tracemalloc.start()
     start_time = time.time()
 
+    stack.append(start_state)
+    visited.add(start_state)
+    parent[start_state]  = None
+
     while stack:
-        current, prev, depth = stack.pop()
+        current = stack.pop()
+        node_count+=1
 
-        # Timeout
-        if timeout is not None and (time.time() - start_time) > timeout:
-            print("Timeout exceeded.")
-            break
-
-        # Depth limit
-        if max_depth is not None and depth > max_depth:
-            continue
-
-        if current in visited:
-            continue
-        visited.add(current)
-        parent[current] = prev
-        node_count += 1
 
         if current.is_goal():
             end_time = time.time()
@@ -44,9 +35,11 @@ def dfs(start_state, max_depth=None, timeout=None):
         if current.is_deadlock():
             continue
 
-        for next_state in reversed(current.get_successors()):  # DFS: duyệt ngược để đúng thứ tự
+        for next_state in current.get_successors(): 
             if next_state not in visited:
-                stack.append((next_state, current, depth + 1))
+                visited.add(next_state)
+                parent[next_state] = current
+                stack.append(next_state)
 
     tracemalloc.stop()
     print("No solution found.")

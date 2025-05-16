@@ -3,31 +3,21 @@ from solver.utils import reconstruct_path
 import time
 import tracemalloc  # Thư viện đo bộ nhớ
 
-def bfs(start_state, max_depth=None, timeout=None):
+def bfs(start_state):
     visited = set()
-    queue = deque([(start_state, None, 0)])  # Thêm depth vào hàng đợi
+    queue = deque()
     parent = dict()
     node_count = 0
 
     tracemalloc.start()
     start_time = time.time()
 
+    queue.append(start_state)
+    visited.add(start_state)
+    parent[start_state]=None
+
     while queue:
-        current, prev, depth = queue.popleft()
-
-        # Check timeout
-        if timeout is not None and (time.time() - start_time) > timeout:
-            print("Timeout exceeded.")
-            break
-
-        #Check depth limit
-        if max_depth is not None and depth > max_depth:
-            continue
-
-        if current in visited:
-            continue
-        visited.add(current)
-        parent[current] = prev
+        current = queue.popleft()
         node_count += 1
 
         if current.is_goal():
@@ -46,7 +36,9 @@ def bfs(start_state, max_depth=None, timeout=None):
 
         for next_state in current.get_successors():
             if next_state not in visited:
-                queue.append((next_state, current, depth + 1))
+                visited.add(next_state)
+                parent[next_state] = current
+                queue.append(next_state)
 
     tracemalloc.stop()
     print("No solution found.")
